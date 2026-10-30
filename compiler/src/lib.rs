@@ -9,3 +9,6 @@ pub mod comptime;
 
 #[path = "../sema/mod.rs"]
 pub mod sema;
+
+#[path = "../codegen/mod.rs"]
+pub mod codegen;

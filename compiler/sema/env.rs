@@ -97,7 +97,7 @@ pub struct FuncTemplate {
 pub struct MonoFunc {
     pub c_name: String,
     pub receiver: Option<(Type, bool)>, // (Type, is_mutating)
-    pub params: Vec<(String, Type)>,
+    pub params: Vec<(String, Type, Option<Expr>)>,
     pub ret_ty: Type,
     pub is_generator: bool,
     pub yield_ty: Option<Type>,

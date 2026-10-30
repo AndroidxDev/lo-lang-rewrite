@@ -77,6 +77,7 @@ impl TypeChecker {
                         } else {
                             val_ty
                         };
+                        ctx.record_expr_type(stmt.span, final_ty.clone());
                         ctx.define_var(name, final_ty, *is_mut, stmt.span)?;
                     }
                     BindTarget::Destruct(names) => match &val_ty {

@@ -1665,7 +1665,8 @@ impl TypeChecker {
                 span: call_span,
             });
         }
-        let mut final_params: Vec<(String, Type)> = Vec::with_capacity(tpl.func.params.len());
+        let mut final_params: Vec<(String, Type, Option<Expr>)> =
+            Vec::with_capacity(tpl.func.params.len());
         for (idx, p) in tpl.func.params.iter().enumerate() {
             let declared_pty = match &p.ty {
                 Some(te) => Some(self.resolve_type_expr(te, &subst, p.span)?),
@@ -1696,14 +1697,14 @@ impl TypeChecker {
                     span: call_span,
                 });
             };
-            final_params.push((p.name.clone(), actual_pty));
+            final_params.push((p.name.clone(), actual_pty, p.default.clone()));
         }
 
         let mut mangle_parts = vec![sanitize_ident(&tpl.key_name)];
         if let Some(ref rt) = receiver_ty {
             mangle_parts.push(rt.mangle());
         }
-        for (_, pt) in &final_params {
+        for (_, pt, _) in &final_params {
             mangle_parts.push(pt.mangle());
         }
         let c_name = format!("lo_fn_{}", mangle_parts.join("__"));
@@ -1723,13 +1724,13 @@ impl TypeChecker {
         // Pre-seed `active_mono` for recursive functions (`fact(n - 1)` or `$(n - 1)`)
         let provisional_ret = declared_ret
             .clone()
-            .or_else(|| final_params.first().map(|(_, t)| t.clone()))
+            .or_else(|| final_params.first().map(|(_, t, _)| t.clone()))
             .unwrap_or(Type::I64);
         self.active_mono
             .insert(c_name.clone(), provisional_ret.clone());
 
         let mut fctx = FnCheckCtx::new(declared_ret.clone(), subst);
-        let param_only_tys: Vec<Type> = final_params.iter().map(|(_, t)| t.clone()).collect();
+        let param_only_tys: Vec<Type> = final_params.iter().map(|(_, t, _)| t.clone()).collect();
         let self_fn_sig = Type::Func {
             params: param_only_tys,
             ret: Box::new(provisional_ret),
@@ -1741,7 +1742,7 @@ impl TypeChecker {
         if let Some(ref rty) = receiver_ty {
             fctx.push_current_item(rty.clone(), tpl.is_mutating_method);
         }
-        for (pname, pty) in &final_params {
+        for (pname, pty, _) in &final_params {
             fctx.define_var(pname, pty.clone(), false, tpl.func.span)?;
         }
 
