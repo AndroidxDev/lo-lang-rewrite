@@ -1,0 +1,183 @@
+#[ std/math.lo — Математические константы, функции libm, ГПСЧ и векторы Vec2/Vec3 ]#
+
++pi  = 3.14159265358979323846
++e   = 2.71828182845904523536
++tau = 6.28318530717958647692
+
+c_sin       = <"c" "sin" (f64) [f64]>
+c_cos       = <"c" "cos" (f64) [f64]>
+c_tan       = <"c" "tan" (f64) [f64]>
+c_asin      = <"c" "asin" (f64) [f64]>
+c_acos      = <"c" "acos" (f64) [f64]>
+c_atan2     = <"c" "atan2" (f64, f64) [f64]>
+c_sqrt      = <"c" "sqrt" (f64) [f64]>
+c_pow       = <"c" "pow" (f64, f64) [f64]>
+c_floor     = <"c" "floor" (f64) [f64]>
+c_ceil      = <"c" "ceil" (f64) [f64]>
+c_round     = <"c" "round" (f64) [f64]>
+c_fabs      = <"c" "fabs" (f64) [f64]>
+c_rand_i64  = <"c" "lo_rt_math_rand_i64" (i64, i64) [i64]>
+c_rand_f64  = <"c" "lo_rt_math_rand_f64" () [f64]>
+
++sin   = (x [f64]) [f64] { c_sin(x) }
++cos   = (x [f64]) [f64] { c_cos(x) }
++tan   = (x [f64]) [f64] { c_tan(x) }
++asin  = (x [f64]) [f64] { c_asin(x) }
++acos  = (x [f64]) [f64] { c_acos(x) }
++atan2 = (y [f64], x [f64]) [f64] { c_atan2(y, x) }
++sqrt  = (x [f64]) [f64] { c_sqrt(x) }
++pow   = (base [f64], exp [f64]) [f64] { c_pow(base, exp) }
++floor = (x [f64]) [f64] { c_floor(x) }
++ceil  = (x [f64]) [f64] { c_ceil(x) }
++round = (x [f64]) [f64] { c_round(x) }
++abs   = (x [f64]) [f64] { c_fabs(x) }
+
++abs_i64 = (x [i64]) [i64] {
+  ? (x < 0) { -x } { x }
+}
+
++min = (a [f64], b [f64]) [f64] {
+  ? (a < b) { a } { b }
+}
+
++max = (a [f64], b [f64]) [f64] {
+  ? (a > b) { a } { b }
+}
+
++clamp = (val [f64], lo [f64], hi [f64]) [f64] {
+  ? (val < lo) { lo } (val > hi) { hi } { val }
+}
+
++min_i64 = (a [i64], b [i64]) [i64] {
+  ? (a < b) { a } { b }
+}
+
++max_i64 = (a [i64], b [i64]) [i64] {
+  ? (a > b) { a } { b }
+}
+
++clamp_i64 = (val [i64], lo [i64], hi [i64]) [i64] {
+  ? (val < lo) { lo } (val > hi) { hi } { val }
+}
+
++lerp = (a [f64], b [f64], t [f64]) [f64] {
+  a + (b - a) * t
+}
+
++rand_i64 = (low [i64], high [i64]) [i64] {
+  c_rand_i64(low, high)
+}
+
++rand_f64 = () [f64] {
+  c_rand_f64()
+}
+
++rand = (low [f64], high [f64]) [f64] {
+  low + (high - low) * c_rand_f64()
+}
+
+#[ Двумерный вектор Vec2 ]#
++Vec2 = [
+  x [f64] = 0.0
+  y [f64] = 0.0
+]
+
++vec2 = (x [f64], y [f64]) [Vec2] {
+  Vec2[x = x, y = y]
+}
+
++Vec2.len_sq = () [f64] {
+  @.x * @.x + @.y * @.y
+}
+
++Vec2.length = () [f64] {
+  c_sqrt(@.x * @.x + @.y * @.y)
+}
+
++Vec2.dot = (other [Vec2]) [f64] {
+  @.x * other.x + @.y * other.y
+}
+
++Vec2.add = (other [Vec2]) [Vec2] {
+  Vec2[x = @.x + other.x, y = @.y + other.y]
+}
+
++Vec2.sub = (other [Vec2]) [Vec2] {
+  Vec2[x = @.x - other.x, y = @.y - other.y]
+}
+
++Vec2.scale = (factor [f64]) [Vec2] {
+  Vec2[x = @.x * factor, y = @.y * factor]
+}
+
++Vec2.scale! = (factor [f64]) {
+  @.x *<- factor
+  @.y *<- factor
+}
+
++Vec2.normalize = () [Vec2] {
+  d = c_sqrt(@.x * @.x + @.y * @.y)
+  ? (d > 0.0) {
+    Vec2[x = @.x / d, y = @.y / d]
+  } {
+    Vec2[x = 0.0, y = 0.0]
+  }
+}
+
+#[ Трехмерный вектор Vec3 ]#
++Vec3 = [
+  x [f64] = 0.0
+  y [f64] = 0.0
+  z [f64] = 0.0
+]
+
++vec3 = (x [f64], y [f64], z [f64]) [Vec3] {
+  Vec3[x = x, y = y, z = z]
+}
+
++Vec3.len_sq = () [f64] {
+  @.x * @.x + @.y * @.y + @.z * @.z
+}
+
++Vec3.length = () [f64] {
+  c_sqrt(@.x * @.x + @.y * @.y + @.z * @.z)
+}
+
++Vec3.dot = (other [Vec3]) [f64] {
+  @.x * other.x + @.y * other.y + @.z * other.z
+}
+
++Vec3.cross = (other [Vec3]) [Vec3] {
+  Vec3[
+    x = @.y * other.z - @.z * other.y
+    y = @.z * other.x - @.x * other.z
+    z = @.x * other.y - @.y * other.x
+  ]
+}
+
++Vec3.add = (other [Vec3]) [Vec3] {
+  Vec3[x = @.x + other.x, y = @.y + other.y, z = @.z + other.z]
+}
+
++Vec3.sub = (other [Vec3]) [Vec3] {
+  Vec3[x = @.x - other.x, y = @.y - other.y, z = @.z - other.z]
+}
+
++Vec3.scale = (factor [f64]) [Vec3] {
+  Vec3[x = @.x * factor, y = @.y * factor, z = @.z * factor]
+}
+
++Vec3.scale! = (factor [f64]) {
+  @.x *<- factor
+  @.y *<- factor
+  @.z *<- factor
+}
+
++Vec3.normalize = () [Vec3] {
+  d = c_sqrt(@.x * @.x + @.y * @.y + @.z * @.z)
+  ? (d > 0.0) {
+    Vec3[x = @.x / d, y = @.y / d, z = @.z / d]
+  } {
+    Vec3[x = 0.0, y = 0.0, z = 0.0]
+  }
+}
