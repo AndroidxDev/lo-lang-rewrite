@@ -1174,13 +1174,16 @@ impl ComptimeEvaluator {
                 }
             }
             ExprKind::Loop { head, body } => self.eval_loop(head, body),
-            ExprKind::Labeled { label, expr: inner } => match self.eval_expr(inner)? {
-                Ok(v) => Ok(Ok(v)),
-                Err(Signal::LabeledReturn(ref l, v)) if l == label => Ok(Ok(v)),
-                Err(Signal::LabeledBreak(ref l, v)) if l == label => {
-                    Ok(Ok(v.unwrap_or(ComptimeValue::Null)))
+            ExprKind::Labeled { label, expr: inner } => loop {
+                match self.eval_expr(inner)? {
+                    Ok(v) => break Ok(Ok(v)),
+                    Err(Signal::LabeledReturn(ref l, v)) if l == label => break Ok(Ok(v)),
+                    Err(Signal::LabeledBreak(ref l, v)) if l == label => {
+                        break Ok(Ok(v.unwrap_or(ComptimeValue::Null)))
+                    }
+                    Err(Signal::LabeledContinue(ref l)) if l == label => continue,
+                    Err(other) => break Ok(Err(other)),
                 }
-                Err(other) => Ok(Err(other)),
             },
             ExprKind::BlockExpr(blk) | ExprKind::Comptime(blk) => self.eval_block(blk),
             ExprKind::Cast {

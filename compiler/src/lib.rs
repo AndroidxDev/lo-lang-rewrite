@@ -6,3 +6,6 @@ pub mod parser;
 
 #[path = "../comptime/mod.rs"]
 pub mod comptime;
+
+#[path = "../sema/mod.rs"]
+pub mod sema;
