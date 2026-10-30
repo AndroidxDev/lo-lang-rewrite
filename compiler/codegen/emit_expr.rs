@@ -12,6 +12,7 @@ pub struct DeferEntry {
     pub flag_var: String,
     pub is_errdefer: bool,
     pub body: Block,
+    pub captured_scopes: Vec<HashMap<String, (String, Type, bool)>>,
 }
 
 #[derive(Clone)]
@@ -359,7 +360,16 @@ impl<'a> FnEmitCtx<'a> {
     pub fn emit_expr(&mut self, expr: &Expr, out: &mut String) -> String {
         let ety = self.expr_ty(expr.span);
         match &expr.kind {
-            ExprKind::Unit => "lo_unit_val()".into(),
+            ExprKind::Unit => match &ety {
+                Type::Array(el) => format!("lo_vec_new(sizeof({}), 1)", c_type_name(el)),
+                Type::Map(k, v) => format!(
+                    "lo_map_new(sizeof({}), sizeof({}), {})",
+                    c_type_name(k),
+                    c_type_name(v),
+                    if **k == Type::Str { "true" } else { "false" }
+                ),
+                _ => "lo_unit_val()".into(),
+            },
             ExprKind::Null => {
                 if matches!(ety, Type::Nullable(_)) {
                     format!("(({}){{ .has_val = false }})", c_type_name(&ety))
@@ -792,10 +802,18 @@ impl<'a> FnEmitCtx<'a> {
                     };
                     let _ = writeln!(out, "    if ({}) {{", cond);
                     let raw_access = self.emit_direct_field(&inner_expr, inner_bty, field);
-                    let inner_ety = ety.unwrap_nullable().unwrap_or(&ety).clone();
-                    let coerced = self.coerce(&raw_access, &inner_ety, &inner_ety, out);
-                    let _ = writeln!(out, "        {}.has_val = true;", res);
-                    let _ = writeln!(out, "        {}.val = {};", res, coerced);
+                    let raw_fty = match inner_bty {
+                        Type::Struct(sn) => self
+                            .prog
+                            .structs
+                            .get(sn)
+                            .and_then(|st| st.fields.iter().find(|f| &f.name == field))
+                            .map(|f| f.ty.clone())
+                            .unwrap_or_else(|| ety.unwrap_nullable().unwrap_or(&ety).clone()),
+                        _ => ety.unwrap_nullable().unwrap_or(&ety).clone(),
+                    };
+                    let coerced = self.coerce(&raw_access, &raw_fty, &ety, out);
+                    let _ = writeln!(out, "        {} = {};", res, coerced);
                     let _ = writeln!(out, "    }}");
                     res
                 } else {
@@ -838,15 +856,11 @@ impl<'a> FnEmitCtx<'a> {
                             "    void* {} = lo_map_get({}, &{});",
                             ptmp, map_ptr, ktmp
                         );
-                        let _ = writeln!(
-                            out,
-                            "    if ({}) {{ {}.has_val = true; {}.val = *({}*){}; }}",
-                            ptmp,
-                            res,
-                            res,
-                            c_type_name(&v_ty),
-                            ptmp
-                        );
+                        let _ = writeln!(out, "    if ({}) {{", ptmp);
+                        let raw_mv = format!("(*({}*){})", c_type_name(&v_ty), ptmp);
+                        let coerced_mv = self.coerce(&raw_mv, &v_ty, &ety, out);
+                        let _ = writeln!(out, "        {} = {};", res, coerced_mv);
+                        let _ = writeln!(out, "    }}");
                         res
                     }
                     Type::Array(elem_ty) => {
@@ -876,9 +890,8 @@ impl<'a> FnEmitCtx<'a> {
                                 itmp,
                                 expr.span.line
                             );
-                            let inner_ety = ety.unwrap_nullable().unwrap_or(&elem_ty).clone();
-                            let coerced = self.coerce(&raw_el, &elem_ty, &inner_ety, out);
-                            let _ = writeln!(out, "        {}.has_val = true; {}.val = {};", res, res, coerced);
+                            let coerced = self.coerce(&raw_el, &elem_ty, &ety, out);
+                            let _ = writeln!(out, "        {} = {};", res, coerced);
                             let _ = writeln!(out, "    }}");
                             res
                         } else {

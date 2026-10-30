@@ -295,10 +295,20 @@ impl Parser {
             }
         }
 
-        // 2. Single variable BindStmt: `[+] ident [TypeTag]? ("=" | "~=") Expr`
-        if matches!(self.cur_kind(), TokenKind::Ident(_)) {
+        // 2. Single variable BindStmt: `[+] (ident | "_") [TypeTag]? ("=" | "~=") Expr`
+        if matches!(self.cur_kind(), TokenKind::Ident(_) | TokenKind::Underscore) {
             let bind_saved = self.pos;
-            let (name, _) = self.expect_ident()?;
+            let name = match self.cur_kind().clone() {
+                TokenKind::Ident(s) => {
+                    self.advance();
+                    s
+                }
+                TokenKind::Underscore => {
+                    self.advance();
+                    "_".to_string()
+                }
+                _ => unreachable!(),
+            };
             let ty = if matches!(self.cur_kind(), TokenKind::LBracket) {
                 self.try_parse_type_tag()
             } else {
@@ -653,8 +663,8 @@ impl Parser {
             }
         }
 
-        // Function type `(T1, T2) [Ret]`
-        if matches!(self.cur_kind(), TokenKind::LParen) {
+        // Function type `(T1, T2) [Ret]` or parenthesized type `((T1) [Ret])?`
+        let mut ty = if matches!(self.cur_kind(), TokenKind::LParen) {
             self.advance();
             self.skip_seps();
             let mut params = Vec::new();
@@ -680,45 +690,51 @@ impl Parser {
                 self.skip_seps();
             }
             self.expect(&TokenKind::RParen)?;
-            let ret = self.try_parse_type_tag().ok_or_else(|| ParseError {
-                message: "expected return `[Type]` in function type".into(),
-                span: self.cur_span(),
-            })?;
-            return Ok(TypeExpr::Func {
-                params,
-                ret: Box::new(ret),
-            });
-        }
-
-        // Prefix `~` (Channel/Task) or `%` (Set)
-        let prefix = if matches!(self.cur_kind(), TokenKind::Tilde) {
-            self.advance();
-            Some('~')
-        } else if matches!(self.cur_kind(), TokenKind::Percent) {
-            self.advance();
-            Some('%')
-        } else {
-            None
-        };
-
-        let (name, _) = self.expect_type_ident()?;
-        let mut generics = Vec::new();
-        if matches!(self.cur_kind(), TokenKind::Lt) {
-            self.advance();
-            self.skip_seps();
-            while !matches!(self.cur_kind(), TokenKind::Gt | TokenKind::Eof) {
-                generics.push(self.parse_type_spec()?);
-                self.skip_seps();
+            if let Some(ret) = self.try_parse_type_tag() {
+                TypeExpr::Func {
+                    params,
+                    ret: Box::new(ret),
+                }
+            } else if params.len() == 1 {
+                params.pop().unwrap()
+            } else {
+                return Err(ParseError {
+                    message: "expected return `[Type]` in function type".into(),
+                    span: self.cur_span(),
+                });
             }
-            self.expect(&TokenKind::Gt)?;
-        }
+        } else {
+            // Prefix `~` (Channel/Task) or `%` (Set)
+            let prefix = if matches!(self.cur_kind(), TokenKind::Tilde) {
+                self.advance();
+                Some('~')
+            } else if matches!(self.cur_kind(), TokenKind::Percent) {
+                self.advance();
+                Some('%')
+            } else {
+                None
+            };
 
-        let mut ty = TypeExpr::Named { name, generics };
-        match prefix {
-            Some('~') => ty = TypeExpr::Channel(Box::new(ty)),
-            Some('%') => ty = TypeExpr::Set(Box::new(ty)),
-            _ => {}
-        }
+            let (name, _) = self.expect_type_ident()?;
+            let mut generics = Vec::new();
+            if matches!(self.cur_kind(), TokenKind::Lt) {
+                self.advance();
+                self.skip_seps();
+                while !matches!(self.cur_kind(), TokenKind::Gt | TokenKind::Eof) {
+                    generics.push(self.parse_type_spec()?);
+                    self.skip_seps();
+                }
+                self.expect(&TokenKind::Gt)?;
+            }
+
+            let mut base = TypeExpr::Named { name, generics };
+            match prefix {
+                Some('~') => base = TypeExpr::Channel(Box::new(base)),
+                Some('%') => base = TypeExpr::Set(Box::new(base)),
+                _ => {}
+            }
+            base
+        };
 
         // Compositional suffixes: `?` (Nullable) and `..` (Dynamic Array / Slice) in any order (e.g. `Order?..`, `i64..?`)
         loop {

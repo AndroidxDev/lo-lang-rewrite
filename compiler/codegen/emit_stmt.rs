@@ -21,6 +21,7 @@ impl<'a> FnEmitCtx<'a> {
             saved_err
         );
         for entry in entries.iter().rev() {
+            let prev_vars = std::mem::replace(&mut self.local_vars, entry.captured_scopes.clone());
             if entry.is_errdefer {
                 let cond = if is_err_exit {
                     entry.flag_var.clone()
@@ -37,6 +38,7 @@ impl<'a> FnEmitCtx<'a> {
                 let _ = self.emit_block(&entry.body, &Type::Unit, out);
                 let _ = writeln!(out, "    }}");
             }
+            self.local_vars = prev_vars;
         }
         let _ = writeln!(out, "    _lo_err = {};", saved_err);
         self.masking_defers = false;
@@ -120,7 +122,11 @@ impl<'a> FnEmitCtx<'a> {
                         let c_var = self.fresh_tmp(&format!("v_{}", sanitize_ident(name)));
                         let _ =
                             writeln!(out, "    {} {} = {};", c_type_name(&var_ty), c_var, coerced);
-                        self.bind_local(name, c_var, var_ty, false);
+                        if name == "_" {
+                            let _ = writeln!(out, "    (void){};", c_var);
+                        } else {
+                            self.bind_local(name, c_var, var_ty, false);
+                        }
                     }
                     BindTarget::Destruct(names) => match &vty {
                         Type::Tuple(elems) => {
@@ -301,6 +307,7 @@ impl<'a> FnEmitCtx<'a> {
                     flag_var: flag,
                     is_errdefer: *is_errdefer,
                     body: body.clone(),
+                    captured_scopes: self.local_vars.clone(),
                 });
                 ("lo_unit_val()".into(), Type::Unit)
             }
