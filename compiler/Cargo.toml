@@ -1,0 +1,13 @@
+[package]
+name = "loc"
+version = "1.0.0"
+edition = "2021"
+description = "Industrial native compiler for the lo programming language"
+
+[lib]
+name = "loc"
+path = "src/lib.rs"
+
+[[bin]]
+name = "loc"
+path = "src/main.rs"
