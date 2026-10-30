@@ -1509,7 +1509,7 @@ impl<'a> FnEmitCtx<'a> {
                     .prog
                     .funcs
                     .iter()
-                    .find(|f| &f.c_name == fn_c_name)
+                    .find(|f| &f.c_name == fn_c_name && f.receiver.is_some())
                     .cloned()
                 {
                     let recv_ty = self.expr_ty(recv_expr.span);

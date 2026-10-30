@@ -1,0 +1,16 @@
+[package]
+name = "lomake"
+version = "1.0.0"
+edition = "2021"
+description = "Build system, dependency graph analyzer, and test runner for the lo programming language"
+
+[lib]
+name = "lomake"
+path = "src/lib.rs"
+
+[[bin]]
+name = "lomake"
+path = "src/main.rs"
+
+[dependencies]
+loc = { path = "../compiler" }
