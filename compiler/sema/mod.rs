@@ -214,7 +214,17 @@ impl TypeChecker {
                     if f.generics.is_empty() {
                         f.generics = generics.clone();
                     }
-                    let key = format!("{}__method_{}_{}", mod_prefix, type_name, method_name);
+                    let mkey_name = if *is_mutating {
+                        format!("{}!", method_name)
+                    } else {
+                        method_name.clone()
+                    };
+                    let key = format!(
+                        "{}__method_{}_{}",
+                        mod_prefix,
+                        type_name,
+                        sanitize_ident(&mkey_name)
+                    );
                     self.func_templates.insert(
                         key.clone(),
                         FuncTemplate {
@@ -226,7 +236,7 @@ impl TypeChecker {
                         },
                     );
                     self.method_templates
-                        .insert((type_name.clone(), method_name.clone()), key);
+                        .insert((type_name.clone(), mkey_name), key);
                 }
                 StmtKind::Bind {
                     is_pub,

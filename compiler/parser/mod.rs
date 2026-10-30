@@ -1432,7 +1432,7 @@ impl Parser {
             if matches!(nl_kind, TokenKind::Dot | TokenKind::SafeDot) {
                 let safe = matches!(nl_kind, TokenKind::SafeDot);
                 self.pos = nl_idx + 1;
-                let (field, fsp) = match self.cur_kind().clone() {
+                let (mut field, mut fsp) = match self.cur_kind().clone() {
                     TokenKind::Ident(s) | TokenKind::TypeIdent(s) => {
                         let sp = self.advance().span;
                         (s, sp)
@@ -1444,6 +1444,10 @@ impl Parser {
                         ))
                     }
                 };
+                if matches!(self.cur_kind(), TokenKind::Bang) {
+                    fsp = self.advance().span;
+                    field.push('!');
+                }
                 let span = expr.span.merge(fsp);
                 expr = Expr {
                     kind: ExprKind::Field {
