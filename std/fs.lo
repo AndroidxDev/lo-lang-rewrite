@@ -1,0 +1,48 @@
+#[ std/fs.lo — Файловая система с типизированными ошибками FsErr для ?, ??, ?! и !{} ]#
+
++FsErr = [
+  code [i64] = 2
+  msg  [str] = "filesystem error"
+  path [str] = ""
+]
+
+c_read_file  = <"c" "lo_rt_fs_read_file" (str) [str]>
+c_write_file = <"c" "lo_rt_fs_write_file" (str, str) [bool]>
+c_exists     = <"c" "lo_rt_fs_exists" (str) [bool]>
+c_remove     = <"c" "lo_rt_fs_remove" (str) [bool]>
+
+#[ Проверка существования файла или директории ]#
++exists = (path [str]) [bool] {
+  c_exists(path)
+}
+
+#[ Чтение всего файла в UTF-8 строку; выбрасывает FsErr при ошибке ]#
++read_file = (path [str]) [str] {
+  c_read_file(path) ?! {
+    !^ FsErr[code = @.code, msg = @.msg, path = path]
+  }
+}
+
+#[ Запись строки в файл (перезапись); выбрасывает FsErr при ошибке ]#
++write_file = (path [str], content [str]) [bool] {
+  c_write_file(path, content) ?! {
+    !^ FsErr[code = @.code, msg = @.msg, path = path]
+  }
+}
+
+#[ Дозапись строки в конец файла ]#
++append_file = (path [str], extra [str]) [bool] {
+  prev = ? (c_exists(path)) {
+    read_file(path)
+  } {
+    ""
+  }
+  write_file(path, prev + extra)
+}
+
+#[ Удаление файла; выбрасывает FsErr при ошибке ]#
++remove = (path [str]) [bool] {
+  c_remove(path) ?! {
+    !^ FsErr[code = @.code, msg = @.msg, path = path]
+  }
+}
