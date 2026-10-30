@@ -1,0 +1,5 @@
+# ERROR: cannot access `.len` on nullable type
++main = {
+  nick [str?] = "Alex"
+  println("{nick.len}")
+}

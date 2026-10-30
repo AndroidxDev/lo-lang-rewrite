@@ -1,0 +1,5 @@
+# ERROR: cannot mutate immutable binding `score`
++main = {
+  score = 100
+  score <- 200
+}

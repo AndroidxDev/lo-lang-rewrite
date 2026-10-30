@@ -1,0 +1,96 @@
+Program
+  Bind math =
+    Import("std/math")
+  Bind c_puts =
+    ExternC("puts", (str) -> [i32])
+  TypeDef NetErr (Struct)
+    Field code
+      Int(500)
+    Field url
+      Str("")
+  TypeDef AuthErr (Struct)
+    Field reason
+      Str("")
+  Bind table =
+    Comptime
+      Block
+        Pipe(Seq)
+          Range(..)
+            Int(0)
+            Int(4)
+          StageMap(@)
+            Block
+              Binary(Mul)
+                CurrentItem(@)
+                Int(10)
+  Bind fetch =
+    Func(url [str], token [str?])
+      Block
+        Defer
+          Block
+            Call()
+              Ident(c_puts)
+              Str("done")
+        ErrDefer
+          Block
+            Call()
+              Ident(c_puts)
+              Str("rollback")
+        GuardReturn(?^)
+          Binary(Eq)
+            Ident(token)
+            Null(~)
+          Throw
+            StructLit(AuthErr)
+              Field reason
+                Str("no_token")
+        Try
+          Block
+            Call()
+              Field(.trim)
+                Ident(url)
+          CatchPattern VariantTuple { type_name: "AuthErr", subpatterns: [Ident("e")] }
+            Block
+              Field(.reason)
+                Ident(e)
+          CatchPattern Struct { type_name: Some("NetErr"), fields: [("code", Int(404))], has_rest: true }
+            Block
+              Str("not_found")
+          CatchBind(err)
+            Block
+              Str("failed")
+          Finally
+            Block
+              Call()
+                Ident(c_puts)
+                Str("finally")
+  Bind async_demo =
+    Func()
+      Block
+        Bind ch =
+          Call()
+            TypeVal([~i64])
+        Bind t =
+          AsyncSpawn
+            Block
+              Pipe(Seq)
+                Pipe(Par)
+                  Array
+                    Int(1)
+                    Int(2)
+                    Int(3)
+                  StageMap(@)
+                    Block
+                      Binary(Mul)
+                        CurrentItem(@)
+                        Int(2)
+                StageFold(s)
+                  Int(0)
+                  Block
+                    Binary(Add)
+                      Ident(s)
+                      CurrentItem(@)
+        Binary(ChanSend)
+          Ident(ch)
+          Unary(Await)
+            Ident(t)

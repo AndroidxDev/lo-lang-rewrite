@@ -1,0 +1,5 @@
+# ERROR: cannot assign value of type
++main = {
+  name [str] = ~
+  println(name)
+}

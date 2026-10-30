@@ -1,0 +1,12 @@
+# ERROR: cannot call mutating method `.scale!()` on an immutable value
+Vec2 = [x = 0.0, y = 0.0]
+
+Vec2.scale! = (factor [f64]) {
+  @.x *<- factor
+  @.y *<- factor
+}
+
++main = {
+  v = Vec2[x = 1.0, y = 2.0]
+  v.scale!(3.0)
+}

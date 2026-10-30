@@ -1,0 +1,21 @@
+# Every compound operator and delimiter in lo.md v1.0
+a ~= 1
+a <- 2
+a +<- 3
+a -<- 1
+a *<- 4
+a /<- 2
+b = x?.y?[0]?(1) ?? 0
+c = x!! ?[Admin]
+d = s ~> f ~>> g ?~> h
+ch <~ 10
+v = <~ task
+m = 1 .& 2 .| 3 .^ .~4 .<< 2 .>> 1
+r1 = 0..10
+r2 = 0..=10
+kv = ["k" => 1]
+ct = <{ 42 }>
+!{ ~{ x } ?!{ y } } ?! (e) { !^ e } ?> { ^@ 0 }
+? (1b) { ?^ 1 } { ^#lbl 2 }
+gen = { ^~ 5 }
+@ { ~@ ; !@ }

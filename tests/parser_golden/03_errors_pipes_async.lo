@@ -1,0 +1,35 @@
+math = <"std/math">
+c_puts = <"c" "puts" (str) [i32]>
+
+NetErr = [code = 500, url = ""]
+AuthErr = [reason = ""]
+
+table = <{
+  0..4 ~> { @ * 10 }
+}>
+
+fetch = (url [str], token [str?]) {
+  ~{ c_puts("done") }
+  ?!{ c_puts("rollback") }
+  (token == ~) ?^ !^ AuthErr[reason = "no_token"]
+
+  !{
+    url.trim()
+  } ?! [AuthErr(e)] {
+    e.reason
+  } ?! [NetErr[code = 404, ..]] {
+    "not_found"
+  } ?! (err) {
+    "failed"
+  } ?> {
+    c_puts("finally")
+  }
+}
+
+async_demo = {
+  ch = [~i64]()
+  t = ~>{
+    [1, 2, 3] ~>> { @ * 2 } ~> (s = 0) { s + @ }
+  }
+  ch <~ (<~ t)
+}

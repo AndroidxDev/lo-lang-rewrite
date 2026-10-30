@@ -1,0 +1,30 @@
+io    = <"std/io">
+math  = <"std/math">
+fs    = <"std/fs">
+str_m = <"std/str">
+time  = <"std/time">
+
++main = {
+  # std/io + std/str
+  clean = str_m.trim("   Hello, LO Standard Library!   ")
+  parts = str_m.split(str_m.lower(clean), " ")
+  io.println("words={parts.len}:{parts[0]}|{parts[3]}")
+  io.println("pad={io.pad_left("99", 5, "0")};num={str_m.to_i64("2026") ?? 0}")
+
+  # std/math
+  v ~= math.vec2(3.0, 4.0)
+  io.println("vec_len={v.length()};clamp={math.clamp_i64(150, 0, 100)}")
+
+  # std/fs
+  tmp_path = "./lo_e2e_stdlib_test.tmp"
+  ~{ _ = fs.remove(tmp_path) ?? 0b }
+  _ = fs.write_file(tmp_path, "alpha\nbeta")?
+  loaded = fs.read_file(tmp_path)?
+  io.println("fs={fs.exists(tmp_path)}:{str_m.replace(loaded, "\n", "+")}")
+
+  # std/time
+  t0 = time.now_us()
+  time.sleep_ms(2)
+  dt = time.now_us() - t0
+  io.println("time_ok={dt >= 0}")
+}

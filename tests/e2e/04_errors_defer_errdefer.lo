@@ -1,0 +1,46 @@
+DbErr = [code = 500, msg = ""]
+AuthErr = [reason = ""]
+
+tx_step = (mode [i64]) [i64] {
+  ~{ println("defer:tx_close({mode})") }
+  ?!{ println("errdefer:tx_rollback({mode})") }
+
+  ? (mode == 1) {
+    !^ AuthErr[reason = "expired_token"]
+  } (mode == 2) {
+    !^ DbErr[code = 404, msg = "row_missing"]
+  } (mode == 3) {
+    !^ DbErr[code = 503, msg = "db_down"]
+  }
+  mode * 100
+}
+
+run_case = (mode [i64]) [str] {
+  res = !{
+    v = tx_step(mode)?
+    "ok:{v}"
+  } ?! [AuthErr(e)] {
+    "auth_err:{e.reason}"
+  } ?! [DbErr[code = 404, msg = m]] {
+    "not_found:{m}"
+  } ?! (err) {
+    "other_err:{err.code}:{err.msg}"
+  } ?> {
+    println("finally({mode})")
+  }
+  res
+}
+
++main = {
+  println(run_case(0))
+  println(run_case(1))
+  println(run_case(2))
+  println(run_case(3))
+
+  fallback1 = tx_step(2) ?? -99
+  fallback2 = tx_step(3) ?! {
+    println("caught_inline:{@.code}:{@.msg}")
+    -1
+  }
+  println("fallbacks={fallback1},{fallback2}")
+}

@@ -1,0 +1,6 @@
+# ERROR: variable `x` is already bound in this scope
++main = {
+  x = 10
+  x = 20
+  println("{x}")
+}

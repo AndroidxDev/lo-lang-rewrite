@@ -1,0 +1,13 @@
+# Single-line comment before nested comment
+#[ Outer comment
+   #[ Inner nested comment with fake ]# inside? No, balanced! ]#
+   Still in outer comment
+]#
+flag_t = 1b
+flag_f = 0b
+hex_v = 0xFF_00
+bin_v = 0b1010_0101
+pi_approx = 3.14159
+ch = 'Z'
+nl = '\n'
+unit = []

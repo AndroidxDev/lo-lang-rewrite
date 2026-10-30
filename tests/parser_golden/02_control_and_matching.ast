@@ -1,0 +1,72 @@
+Program
+  Bind rank_of =
+    Func(score [i64]) -> [str]
+      Block
+        If
+          Binary(GtEq)
+            Ident(score)
+            Int(90)
+          Block
+            Str("Master")
+          Binary(GtEq)
+            Ident(score)
+            Int(70)
+          Block
+            Str("Expert")
+          Binary(GtEq)
+            Ident(score)
+            Int(50)
+          Block
+            Str("Student")
+          Else
+            Block
+              Str("Novice")
+  Bind handle_evt =
+    Func(event)
+      Block
+        Match
+          Ident(event)
+          Arm Struct { type_name: Some("Click"), fields: [("x", Int(0)), ("y", Int(0))], has_rest: false }
+            Block
+              Str("origin")
+          Arm Struct { type_name: Some("Click"), fields: [("x", Ident("x")), ("y", Ident("y"))], has_rest: false }
+            Guard
+              Binary(Gt)
+                Ident(x)
+                Int(100)
+            Block
+              Str("right")
+          Arm VariantTuple { type_name: "KeyPress", subpatterns: [Or([Char('q'), Char('Q')])] }
+            Block
+              Str("quit")
+          Arm VariantTuple { type_name: "Wait", subpatterns: [Range { start: Expr { kind: Int(1), span: Span { start: 321, end: 322, line: 18, col: 10 } }, end: Expr { kind: Int(10), span: Span { start: 325, end: 327, line: 18, col: 14 } }, inclusive: true }] }
+            Block
+              Str("short")
+          Arm Null
+            Block
+              Str("null")
+          Arm Wildcard
+            Block
+              Str("other")
+  Bind search_matrix =
+    Func(matrix)
+      Block
+        Labeled(#search)
+          Block
+            Loop
+              ForEach(row)
+                Ident(matrix)
+              Block
+                Loop
+                  ForEach(cell)
+                    Ident(row)
+                  Block
+                    If
+                      Binary(Eq)
+                        Ident(cell)
+                        Unary(Neg)
+                          Int(1)
+                      Block
+                        LabeledReturn #search
+                          Int(0)
+            Int(100)

@@ -1,0 +1,8 @@
+# ERROR: cannot mutate outer variable `total` inside parallel pipeline `~>>`
++main = {
+  total ~= 0
+  _ = [1, 2, 3, 4] ~>> {
+    total +<- @
+    @ * 2
+  }
+}

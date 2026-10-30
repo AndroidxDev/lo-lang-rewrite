@@ -1,0 +1,6 @@
+# ERROR: mutable binding `~=` is only allowed inside functions
+counter ~= 0
+
++main = {
+  println("{counter}")
+}

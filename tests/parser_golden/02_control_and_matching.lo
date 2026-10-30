@@ -1,0 +1,33 @@
+rank_of = (score [i64]) [str] {
+  ? (score >= 90) {
+    "Master"
+  } (score >= 70) {
+    "Expert"
+  } (score >= 50) {
+    "Student"
+  } {
+    "Novice"
+  }
+}
+
+handle_evt = (event) {
+  ? [event] {
+    Click[x = 0, y = 0]    { "origin" }
+    Click[x, y] (x > 100)  { "right" }
+    KeyPress('q' | 'Q')    { "quit" }
+    Wait(1..=10)           { "short" }
+    ~                      { "null" }
+    _                      { "other" }
+  }
+}
+
+search_matrix = (matrix) {
+  #search {
+    @ (row <- matrix) {
+      @ (cell <- row) {
+        ? (cell == -1) { ^#search 0 }
+      }
+    }
+    100
+  }
+}

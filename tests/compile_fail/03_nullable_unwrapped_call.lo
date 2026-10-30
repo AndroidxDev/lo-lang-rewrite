@@ -1,0 +1,5 @@
+# ERROR: cannot call `.upper()` on nullable receiver
++main = {
+  nick [str?] = "Alex"
+  println(nick.upper())
+}

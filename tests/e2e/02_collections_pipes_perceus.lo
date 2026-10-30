@@ -1,0 +1,39 @@
+Player = [name = "", hp = 100, shield = 50]
+
++main = {
+  # Homogeneous array & slices
+  list = [10, 20, 30, 40, 50]
+  mid = list[1..4]
+  head = list[..2]
+  tail = list[3..]
+  println("slices={mid.len}:{mid[0]}..{mid[2]},{head[0]}+{head[1]},{tail[0]}+{tail[1]}")
+
+  # Repeat array
+  buf = [7 [u8] .. 8]
+  println("repeat={buf.len}:{buf[0]},{buf[7]}")
+
+  # Struct spread update (Perceus RC & reuse)
+  p1 = Player[name = "Knight", hp = 100, shield = 40]
+  p2 = [..p1, hp = p1.hp - 35]
+  p3 = [..p2, shield = p2.shield + 10]
+  println("player={p3.name}:{p3.hp}:{p3.shield}")
+
+  # HashMap with nullable lookup & mutation
+  prices ~= ["apple" => 120, "banana" => 80]
+  prices["orange"] <- 150
+  prices["banana"] <- 95
+  println("map={prices["apple"] ?? 0},{prices["banana"] ?? 0},{prices["orange"] ?? 0},{prices["pear"] ?? -1}")
+
+  # HashSet
+  tags ~= [% "rust", "lua", "lo"]
+  tags.add!("zig")
+  tags.remove!("lua")
+  println("set={tags.has("lo")},{tags.has("zig")},{tags.has("lua")}")
+
+  # Map -> Filter -> Fold pipeline (lo.md §8.3)
+  total = 1..=20
+    ~> { @ * 2 }
+    ~> ? { @ > 20 }
+    ~> (sum = 0) { sum + @ }
+  println("pipe_total={total}")
+}

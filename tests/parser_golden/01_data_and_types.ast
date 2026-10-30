@@ -1,0 +1,51 @@
+Program
+  TypeDef Player (Struct)
+    Field name
+      Str("")
+    Field hp
+      Int(100)
+    Field team [u8]
+  TypeDef State (Enum)
+    Variant Idle
+    Variant Run(f64)
+    Variant Attack [Struct]
+      Field target [i64]
+      Field dmg [i64]
+  TypeDef Serializable (Interface)
+    Sig to_bytes: () [u8..]
+  TypeDef Cache<K, V> (Struct)
+    Field store [K => V]
+    Field max_size
+      Int(100)
+  Bind +main =
+    Func()
+      Block
+        Bind p =
+          StructLit(Player)
+            Field name
+              Str("Max")
+            Field team
+              Int(1)
+        Bind p2 =
+          StructLit(<anon>)
+            Spread
+              Ident(p)
+            Field hp
+              Binary(Sub)
+                Field(.hp)
+                  Ident(p)
+                Int(25)
+        Bind prices =
+          MapLit
+            Str("apple")
+            Int(120)
+            Str("banana")
+            Int(80)
+        Bind tags =
+          SetLit
+            Str("rust")
+            Str("lo")
+        Bind buf =
+          RepeatArray [u8]
+            Int(0)
+            Int(16)

@@ -1,0 +1,6 @@
+# ERROR: nullable operands
++main = {
+  maybe_n [i64?] = 10
+  res = maybe_n + 5
+  println("{res}")
+}

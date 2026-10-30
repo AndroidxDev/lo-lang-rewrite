@@ -1,0 +1,53 @@
+Describable = [
+  describe = () [str]
+]
+
+Metric = [name = "", val = 0]
+Metric.describe = {
+  "{@.name}={@.val}"
+}
+
+Pair = <A, B> [
+  first [A]
+  second [B]
+]
+
+join_descriptions = <T [Describable]> (items [T..]) [str] {
+  out ~= ""
+  idx ~= 0
+  @ (it <- items) {
+    ? (idx > 0) { out +<- ";" }
+    out +<- it.describe()
+    idx +<- 1
+  }
+  out
+}
+
+# Compile-time <{ ... }> precomputed tables
+squares_lut = <{
+  0..6 ~> { @ * @ }
+}>
+
+tier_weights = <{
+  ["bronze" => 1, "silver" => 5, "gold" => 20]
+}>
+
++main = {
+  ms = [Metric[name = "cpu", val = 42], Metric[name = "mem", val = 88]]
+  println(join_descriptions(ms))
+
+  p = Pair<str, i64>[first = "port", second = 8080]
+  println("pair={p.first}:{p.second}")
+
+  println("lut={squares_lut[4]},{squares_lut[5]};gold={tier_weights["gold"] ?? 0}")
+
+  # Bitwise operators (.& .| .^ .~ .<< .>>)
+  flags = 0xAB
+  masked = flags .& 0x0F
+  merged = masked .| 0x30
+  xored = merged .^ 0x05
+  shl = 1 .<< 8
+  shr = shl .>> 3
+  inv_low = (.~0) .& 0xFF
+  println("bits={masked},{merged},{xored},{shl},{shr},{inv_low}")
+}

@@ -1,0 +1,13 @@
+safe_field=6,-1
+safe_idx=200,-1
+safe_call=21,-1
+smart_if=LO_DEV
+assert_len=6
+safe_pipe=lo_dev
+early=anon,hi:Max(3)
+guard=guarded,NEO
+elvis_ret=null,ok:ada
+safe_cast_ok=super
+safe_cast_fail=not_admin
+item=10
+item=30

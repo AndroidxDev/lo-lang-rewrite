@@ -1,0 +1,28 @@
+Player = [
+  name = ""
+  hp = 100
+  team [u8]
+]
+
+State = [
+  Idle
+  Run(f64)
+  Attack[target = i64, dmg = i64]
+]
+
+Serializable = [
+  to_bytes = () [u8..]
+]
+
+Cache = <K, V> [
+  store [K => V]
+  max_size = 100
+]
+
++main = {
+  p = Player[name = "Max", team = 1]
+  p2 = [..p, hp = p.hp - 25]
+  prices = ["apple" => 120, "banana" => 80]
+  tags = [% "rust", "lo"]
+  buf = [0 [u8] .. 16]
+}

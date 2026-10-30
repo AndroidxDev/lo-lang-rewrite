@@ -1,0 +1,64 @@
+Address = [city [str?] = ~]
+User = [name = "", address [Address?] = ~]
+Admin = [role = "root", level = 10]
+
+greet_early = (nick [str?]) [str] {
+  ? (nick == ~) { ^ "anon" }
+  # Smart Cast after early return: nick is [str]
+  "hi:{nick}({nick.len})"
+}
+
+greet_guard = (nick [str?]) [str] {
+  (nick == ~) ?^ "guarded"
+  # Smart Cast after ?^ guard: nick is [str]
+  nick.upper()
+}
+
+greet_elvis_ret = (nick [str?]) [str?] {
+  unwrapped = nick ?? ^ ~
+  "ok:{unwrapped}"
+}
+
++main = {
+  u1 = User[name = "Alex", address = Address[city = "Almaty"]]
+  u2 = User[name = "Guest", address = ~]
+
+  c1 = u1.address?.city?.len ?? -1
+  c2 = u2.address?.city?.len ?? -1
+  println("safe_field={c1},{c2}")
+
+  arr [i64?..] = [10, ~, 30]
+  maybe_arr [i64..?] = [100, 200]
+  null_arr [i64..?] = ~
+  println("safe_idx={maybe_arr?[1] ?? -1},{null_arr?[0] ?? -1}")
+
+  cb [((i64) [i64])?] = (x [i64]) [i64] { x * 3 }
+  null_cb [((i64) [i64])?] = ~
+  println("safe_call={cb?(7) ?? -1},{null_cb?(7) ?? -1}")
+
+  nick [str?] ~= "  lo_dev  "
+  ? (nick != ~ & nick.trim().len > 0) {
+    println("smart_if={nick.trim().upper()}")
+  }
+  println("assert_len={nick!!.trim().len}")
+
+  nick ?~> {
+    println("safe_pipe={@.trim()}")
+  }
+  nick <- ~
+  nick ?~> {
+    println("unreachable")
+  }
+
+  println("early={greet_early(~)},{greet_early("Max")}")
+  println("guard={greet_guard(~)},{greet_guard("neo")}")
+  println("elvis_ret={greet_elvis_ret(~) ?? "null"},{greet_elvis_ret("ada") ?? "null"}")
+
+  # Safe cast ?[T]
+  adm = Admin[role = "super", level = 99]
+  println("safe_cast_ok={adm?[Admin]?.role ?? "no"}")
+  println("safe_cast_fail={u1?[Admin]?.role ?? "not_admin"}")
+
+  # Stream filter-unwrap with ?~>
+  arr ?~> { println("item={@}") }
+}

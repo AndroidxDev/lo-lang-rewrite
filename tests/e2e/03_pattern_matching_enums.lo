@@ -1,0 +1,45 @@
+Event = [
+  Idle
+  KeyPress(char)
+  Wait(i64)
+  Click[x [i64], y [i64]]
+]
+
+classify = (ev [Event?]) [str] {
+  ? [ev] {
+    ~                       { "null_event" }
+    Click[x = 0, y = 0]     { "origin" }
+    Click[x, y] (x > 100)   { "right:{x},{y}" }
+    Click[x, y]             { "click:{x},{y}" }
+    KeyPress('q' | 'Q')     { "quit" }
+    KeyPress(c)             { "key:{c}" }
+    Wait(1..=10)            { "short_wait" }
+    Idle                    { "idle" }
+    _                       { "other" }
+  }
+}
+
+rank_of = (score [i64]) [str] {
+  ? (score >= 90) {
+    "A"
+  } (score >= 75) {
+    "B"
+  } (score >= 60) {
+    "C"
+  } {
+    "F"
+  }
+}
+
++main = {
+  println(classify(~))
+  println(classify(Click[x = 0, y = 0]))
+  println(classify(Click[x = 250, y = 40]))
+  println(classify(Click[x = 12, y = 34]))
+  println(classify(KeyPress('Q')))
+  println(classify(KeyPress('x')))
+  println(classify(Wait(5)))
+  println(classify(Wait(99)))
+  println(classify(Idle))
+  println("ranks={rank_of(95)},{rank_of(80)},{rank_of(61)},{rank_of(42)}")
+}

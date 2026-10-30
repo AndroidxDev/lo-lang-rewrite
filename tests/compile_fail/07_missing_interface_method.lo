@@ -1,0 +1,16 @@
+# ERROR: is missing method `to_bytes` required by interface `Serializable`
+Serializable = [
+  to_bytes = () [u8..]
+]
+
+BadItem = [id = 1]
+
+save_one = <T [Serializable]> (item [T]) [i64] {
+  bs = item.to_bytes()
+  bs.len
+}
+
++main = {
+  x = BadItem[id = 42]
+  println("{save_one(x)}")
+}

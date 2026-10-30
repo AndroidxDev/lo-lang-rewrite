@@ -1,0 +1,67 @@
+# Lazy generator with ^~ (yield)
+fibonacci = (limit [i64]) {
+  [a, b] ~= [0, 1]
+  @ (a < limit) {
+    ^~ a
+    [a, b] <- [b, a + b]
+  }
+}
+
+# Anonymous recursion via $
+fact = (n [i64]) [i64] {
+  ? (n <= 1) { ^ 1 }
+  n * $(n - 1)
+}
+
+# Local return ^@ vs outer function return ^
+transform_items = (items [i64..]) [i64..] {
+  cleaned = items ~> {
+    ? (@ == 999) { ^ [] }
+    ? (@ < 0)    { ^@ 0 }
+    @ * 2
+  }
+  cleaned
+}
+
++main = {
+  fib_sum = fibonacci(50) ~> (acc = 0) { acc + @ }
+  println("fib_sum={fib_sum}")
+  println("fact6={fact(6)}")
+
+  # Loop with ~@ (continue) and !@ (break)
+  i ~= 0
+  odd_sum ~= 0
+  @ (i < 20) {
+    i +<- 1
+    ? (i % 2 == 0) { ~@ }
+    ? (i > 9)      { !@ }
+    odd_sum +<- i
+  }
+  println("odd_sum={odd_sum}")
+
+  # Break with value from @ (item <- list) + Elvis fallback
+  nums = [11, 25, 42, 88]
+  found1 = @ (x <- nums) {
+    ? (x > 30) { !@ (x * 10) }
+  } ?? -1
+  found2 = @ (x <- nums) {
+    ? (x > 100) { !@ x }
+  } ?? -1
+  println("found={found1},{found2}")
+
+  # Labeled block return ^#search
+  matrix = [[1, 2, 3], [4, -1, 6], [7, 8, 9]]
+  res = #search {
+    @ (row <- matrix) {
+      @ (cell <- row) {
+        ? (cell == -1) { ^#search 777 }
+      }
+    }
+    100
+  }
+  println("labeled={res}")
+
+  t1 = transform_items([3, -5, 7])
+  t2 = transform_items([3, 999, 7])
+  println("local_ret={t1.len}:{t1[0]},{t1[1]},{t1[2]};abort_len={t2.len}")
+}

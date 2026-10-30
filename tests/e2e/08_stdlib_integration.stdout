@@ -1,0 +1,5 @@
+words=4:hello,|library!
+pad=00099;num=2026
+vec_len=5;clamp=100
+fs=1b:alpha+beta
+time_ok=1b
