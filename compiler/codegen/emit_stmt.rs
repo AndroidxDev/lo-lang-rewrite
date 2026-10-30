@@ -89,8 +89,10 @@ impl<'a> FnEmitCtx<'a> {
         }
 
         self.pop_scope();
-        if *expected_ty == Type::Unit || last_ty == Type::Never {
+        if *expected_ty == Type::Unit {
             "lo_unit_val()".into()
+        } else if last_ty == Type::Never {
+            c_default_zero(expected_ty)
         } else {
             self.coerce(&last_val, &last_ty, expected_ty, out)
         }
