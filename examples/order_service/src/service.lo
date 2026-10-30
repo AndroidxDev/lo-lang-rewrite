@@ -1,0 +1,71 @@
+#[ Доменная логика сервиса заказов: null-safety, comptime, defer/errdefer, try/catch/finally ]#
+
+io = <"std/io">
+
++DbErr   = [code = 500, msg = ""]
++Order   = [id = 0, item = "", qty = 1, coupon [str?] = ~]
++Receipt = [order_id = 0, total = 0.0, status = ""]
++TxConn  = [order_id = 0]
+
+# Таблица базовых цен, вычисляемая на этапе компиляции (comptime)
+base_prices = <{
+  ["laptop" => 1200.0, "mouse" => 25.0, "keyboard" => 80.0]
+}>
+
++Order.calc_discount = () [f64] {
+  code = @.coupon?.trim()?.upper() ?? ""
+
+  ? (code == "VIP50") {
+    0.50
+  } (code == "SALE20" & @.qty >= 2) {
+    0.20
+  } (@.qty >= 10) {
+    0.10
+  } {
+    0.0
+  }
+}
+
+TxConn.save = (amount [f64]) [bool] {
+  ? (@.order_id == 999) {
+    !^ DbErr[code = 503, msg = "БД временно недоступна"]
+  }
+  amount >= 0.0
+}
+
+TxConn.commit = () [bool] { 1b }
+TxConn.rollback = () [] {}
+TxConn.close = () [] {}
+
++process_order = (raw_order [Order?]) [Receipt?] {
+  # Null-guard с мгновенным выходом из функции через Элвиса ??
+  order = raw_order ?? ^ ~
+
+  # Безопасный поиск цены в словаре [str => f64] -> [f64?]
+  unit_price = base_prices[order.item] ?? ^ ~
+
+  tx = TxConn[order_id = order.id]
+  ~{ tx.close() }
+  ?!{ tx.rollback() }
+
+  !{
+    (order.qty <= 0) ?^ !^ DbErr[code = 400, msg = "Некорректное количество"]
+
+    discount = order.calc_discount()
+    final_sum = (unit_price * order.qty) * (1.0 - discount)
+
+    _ = tx.save(final_sum)?
+    _ = tx.commit()?
+
+    Receipt[order_id = order.id, total = final_sum, status = "OK"]
+  } ?! [DbErr[code = 400, msg = m]] {
+    io.println("[WARN] Ошибка валидации заказа #{order.id}: {m}")
+    Receipt[order_id = order.id, total = 0.0, status = "INVALID"]
+  } ?! (err) {
+    io.println("[ERROR] Критический сбой БД #{order.id}: {err.msg}")
+    ~
+  } ?> {
+    # Гарантированный блок финализации
+    _ = order.id
+  }
+}

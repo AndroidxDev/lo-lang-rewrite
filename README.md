@@ -69,7 +69,7 @@ This produces `./target/release/loc` and `./target/release/lomake`.
 
 ### 2. Compile & Run a `.lo` Program Directly
 ```bash
-./target/release/loc run examples/hello/src/main.lo
+./target/release/loc run examples/particles/src/main.lo
 ```
 Or emit a native binary / inspect generated C11 or AST:
 ```bash

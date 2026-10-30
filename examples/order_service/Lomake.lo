@@ -1,0 +1,8 @@
+#[ Lomake.lo — сервис обработки заказов со всеми механизмами lo v1.0 (lo.md §11) ]#
+project = [
+  name = "order_service"
+  version = "1.0.0"
+  entry = "src/main.lo"
+  opt_level = 3
+  c_libs = ["m", "pthread"]
+]

@@ -1,0 +1,30 @@
+math = <"std/math">
+svc  = <"../src/service.lo">
+
++main = {
+  # 1. Пустой заказ (~) мгновенно возвращает ~
+  assert(svc.process_order(~) == ~)
+
+  # 2. Неизвестный товар возвращает ~
+  assert(svc.process_order(Order[id = 10, item = "unknown", qty = 1]) == ~)
+
+  # 3. Купон VIP50 (без учета регистра и пробелов) дает скидку 50%
+  r_vip = svc.process_order(Order[id = 1, item = "laptop", qty = 1, coupon = " vip50 "])!!
+  assert(r_vip.status == "OK")
+  assert(math.abs(r_vip.total - 600.0) < 0.000001)
+
+  # 4. Купон SALE20 при qty >= 2 дает скидку 20%
+  r_sale = svc.process_order(Order[id = 2, item = "mouse", qty = 4, coupon = "SALE20"])!!
+  assert(r_sale.status == "OK")
+  assert(math.abs(r_sale.total - 80.0) < 0.000001)
+
+  # 5. Валидация qty <= 0 перехватывается ?! [DbErr[code = 400, msg = m]] -> INVALID
+  r_bad = svc.process_order(Order[id = 3, item = "keyboard", qty = 0])!!
+  assert(r_bad.status == "INVALID")
+  assert(math.abs(r_bad.total) < 0.000001)
+
+  # 6. Ошибка БД (503) перехватывается общим ?! (err) -> ~
+  assert(svc.process_order(Order[id = 999, item = "mouse", qty = 1]) == ~)
+
+  println("order_service order_test passed")
+}

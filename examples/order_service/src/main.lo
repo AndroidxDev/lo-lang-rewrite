@@ -1,0 +1,17 @@
+io  = <"std/io">
+svc = <"./service.lo">
+
++main = {
+  incoming [Order?..] = [
+    Order[id = 1, item = "laptop", qty = 1, coupon = "  vip50 "]
+    ~
+    Order[id = 2, item = "mouse", qty = 3, coupon = "sale20"]
+    Order[id = 3, item = "unknown", qty = 1]
+    Order[id = 4, item = "keyboard", qty = 0, coupon = ~]
+  ]
+
+  # Параллельная обработка заказов на всех ядрах CPU и фильтрация непустых чеков через ?~>
+  incoming
+    ~>> { svc.process_order(@) }
+    ?~> { io.println("Чек #{@.order_id}: сумма {@.total} ({@.status})") }
+}

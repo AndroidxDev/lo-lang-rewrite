@@ -1,0 +1,31 @@
+#[ Ядро симуляции частиц со спредом Perceus и параллельным конвейером ~>> ]#
+
+math = <"std/math">
+
++Particle = [
+  id = 0
+  x = 0.0
+  y = 0.0
+  active = 1b
+]
+
++make_world = (count [i64]) [Particle..] {
+  1..=count ~> {
+    Particle[id = @, x = @ * 0.1, y = 0.0, active = (@ % 2 == 0)]
+  }
+}
+
++step = (p [Particle]) [Particle] {
+  ? (p.active) {
+    [..p, x = p.x + 1.5, y = math.sin(p.x)]
+  } {
+    p
+  }
+}
+
++simulate_total_x = (world [Particle..]) [f64] {
+  world
+    ~>> { step(@) }
+    ~> ? { @.active }
+    ~> (acc = 0.0) { acc + @.x }
+}

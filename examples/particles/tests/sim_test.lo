@@ -1,0 +1,20 @@
+math = <"std/math">
+sim  = <"../src/sim.lo">
+
++main = {
+  p_active = Particle[id = 1, x = 2.0, y = 0.0, active = 1b]
+  p_next = sim.step(p_active)
+  assert(math.abs(p_next.x - 3.5) < 0.000001)
+  assert(math.abs(p_next.y - math.sin(2.0)) < 0.000001)
+
+  p_idle = Particle[id = 2, x = 4.0, y = 1.0, active = 0b]
+  p_same = sim.step(p_idle)
+  assert(math.abs(p_same.x - 4.0) < 0.000001)
+  assert(!p_same.active)
+
+  small_world = sim.make_world(4)
+  # Активные частицы: id=2 (x=0.2 -> 1.7) и id=4 (x=0.4 -> 1.9), сумма = 3.6
+  sum_x = sim.simulate_total_x(small_world)
+  assert(math.abs(sum_x - 3.6) < 0.000001)
+  println("particles sim_test passed")
+}

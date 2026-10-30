@@ -1,0 +1,8 @@
+io  = <"std/io">
+sim = <"./sim.lo">
+
++main = {
+  world = sim.make_world(1000)
+  total_x = sim.simulate_total_x(world)
+  io.println("Сумма координат активных частиц = {total_x}")
+}
