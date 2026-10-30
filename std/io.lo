@@ -1,0 +1,55 @@
+#[ std/io.lo — Ввод/вывод консоли и форматированный вывод ]#
+
+c_print     = <"c" "lo_rt_print_str" (str) []>
+c_println   = <"c" "lo_rt_println_str" (str) []>
+c_eprintln  = <"c" "lo_rt_eprintln_str" (str) []>
+c_read_line = <"c" "lo_rt_read_line" () [str]>
+
+#[ Вывод значения в stdout без перевода строки ]#
++print = (val) {
+  c_print("{val}")
+}
+
+#[ Вывод значения в stdout с переводом строки ]#
++println = (val) {
+  c_println("{val}")
+}
+
+#[ Вывод сообщения об ошибке в stderr с переводом строки ]#
++eprintln = (val) {
+  c_eprintln("{val}")
+}
+
+#[ Чтение одной строки из stdin (без завершающих \r\n) ]#
++read_line = () [str] {
+  c_read_line()
+}
+
+#[ Приглашение ввода и чтение ответа ]#
++prompt = (label [str]) [str] {
+  c_print(label)
+  c_read_line()
+}
+
+#[ Форматированный вывод пары ключ-значение ]#
++print_kv = (key [str], val) {
+  c_println("{key} = {val}")
+}
+
+#[ Выравнивание строки по правому краю (дополнение слева) ]#
++pad_left = (text [str], width [i64], fill [str] = " ") [str] {
+  out ~= text
+  @ (out.len < width) {
+    out <- fill + out
+  }
+  out
+}
+
+#[ Выравнивание строки по левому краю (дополнение справа) ]#
++pad_right = (text [str], width [i64], fill [str] = " ") [str] {
+  out ~= text
+  @ (out.len < width) {
+    out +<- fill
+  }
+  out
+}
