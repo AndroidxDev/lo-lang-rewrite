@@ -1,0 +1,22 @@
+# Rust / Cargo build artifacts
+/target/
+**/*.rs.bk
+Cargo.lock
+
+# lo / lomake build artifacts
+/build/
+**/build/
+**/.lomake_cache.json
+*.out
+*.exe
+*.o
+*.c.tmp
+
+# OS / Editor files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.idea/
+.vscode/

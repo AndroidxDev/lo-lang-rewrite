@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-and-test:
+    name: Build loc, lomake & Run Full Suite
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain & Clang
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang gcc
+          rustup update stable
+          rustup component add clippy rustfmt
+
+      - name: Build workspace
+        run: cargo build --workspace --release
+
+      - name: Run unit, golden AST, compile_fail & e2e tests
+        run: cargo test --workspace -- --nocapture
+
+      - name: Verify examples via lomake
+        run: |
+          for dir in examples/*/; do
+            if [ -f "${dir}Lomake.lo" ]; then
+              ./target/release/lomake run --manifest "${dir}Lomake.lo"
+            fi
+          done
