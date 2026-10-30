@@ -327,6 +327,16 @@ impl<'a> Lexer<'a> {
             ));
         }
 
+        // Note: `?..` in `[Order?..]` is nullable `?` followed by `..`, never `?.` + `.`
+        if self.starts_with("?..") {
+            self.advance();
+            return Ok(Token::new(
+                TokenKind::Question,
+                Span::new(start, self.abs_pos(), line, col),
+                had_space,
+            ));
+        }
+
         let two_char = [
             ("!{", TokenKind::TryOpen),
             ("~{", TokenKind::DeferOpen),
