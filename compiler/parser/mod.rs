@@ -158,7 +158,11 @@ impl Parser {
         Ok(Program { items })
     }
 
-    fn parse_block_until(&mut self, close_kind: TokenKind, open_span: Span) -> Result<Block, ParseError> {
+    fn parse_block_until(
+        &mut self,
+        close_kind: TokenKind,
+        open_span: Span,
+    ) -> Result<Block, ParseError> {
         let mut stmts = Vec::new();
         self.skip_seps();
         while self.cur_kind() != &close_kind && !self.at_eof() {
@@ -677,12 +681,10 @@ impl Parser {
                         .is_some_and(|t| t.kind == TokenKind::LBracket)
                 {
                     self.advance();
-                    let pty = self
-                        .try_parse_type_tag()
-                        .ok_or_else(|| ParseError {
-                            message: "expected parameter type tag".into(),
-                            span: self.cur_span(),
-                        })?;
+                    let pty = self.try_parse_type_tag().ok_or_else(|| ParseError {
+                        message: "expected parameter type tag".into(),
+                        span: self.cur_span(),
+                    })?;
                     params.push(pty);
                 } else {
                     params.push(self.parse_type_spec()?);
@@ -1839,9 +1841,11 @@ impl Parser {
             }
             TokenKind::At => {
                 // Loop `@ (cond_or_iter) { ... }` or `@ { ... }` vs CurrentItem `@`
-                if self.tokens.get(self.pos + 1).is_some_and(|t| {
-                    matches!(t.kind, TokenKind::LParen | TokenKind::LBrace)
-                }) {
+                if self
+                    .tokens
+                    .get(self.pos + 1)
+                    .is_some_and(|t| matches!(t.kind, TokenKind::LParen | TokenKind::LBrace))
+                {
                     return self.parse_loop_expr();
                 }
                 let sp = self.advance().span;
@@ -2004,9 +2008,7 @@ impl Parser {
         }
         self.expect(&TokenKind::RParen)?;
         self.skip_seps();
-        let ret = self
-            .try_parse_type_tag()
-            .unwrap_or(TypeExpr::Unit);
+        let ret = self.try_parse_type_tag().unwrap_or(TypeExpr::Unit);
         self.skip_seps();
         let close = self.expect(&TokenKind::Gt)?;
         Ok(Expr {
@@ -2525,7 +2527,9 @@ impl Parser {
         }
     }
 
-    fn parse_struct_pattern_fields(&mut self) -> Result<(Vec<(String, Pattern)>, bool), ParseError> {
+    fn parse_struct_pattern_fields(
+        &mut self,
+    ) -> Result<(Vec<(String, Pattern)>, bool), ParseError> {
         self.expect(&TokenKind::LBracket)?;
         self.skip_seps();
         let mut fields = Vec::new();
@@ -2853,7 +2857,8 @@ demo_async = {
   <~ task
 }
 "#;
-        let prog = Parser::parse_source(src).expect("generics, channels, match, generator should parse");
+        let prog =
+            Parser::parse_source(src).expect("generics, channels, match, generator should parse");
         let formatted = format_program(&prog);
         assert!(formatted.contains("TypeDef State (Enum)"));
         assert!(formatted.contains("TypeDef Serializable (Interface)"));

@@ -128,12 +128,11 @@ impl TypeChecker {
                             if n == "_" {
                                 continue;
                             }
-                            let var_info = ctx.lookup_var_raw(n).cloned().ok_or_else(|| {
-                                SemaError {
+                            let var_info =
+                                ctx.lookup_var_raw(n).cloned().ok_or_else(|| SemaError {
                                     message: format!("undefined variable `{}` in mutation", n),
                                     span: stmt.span,
-                                }
-                            })?;
+                                })?;
                             if !var_info.is_mut {
                                 return Err(SemaError {
                                     message: format!(
@@ -157,8 +156,9 @@ impl TypeChecker {
                                 Type::Array(et) => (**et).clone(),
                                 _ => {
                                     return Err(SemaError {
-                                        message: "expected tuple or array in destructuring mutation"
-                                            .into(),
+                                        message:
+                                            "expected tuple or array in destructuring mutation"
+                                                .into(),
                                         span: value.span,
                                     })
                                 }
@@ -265,8 +265,7 @@ impl TypeChecker {
                 {
                     if branches.len() == 1 {
                         let (cond, then_blk) = &branches[0];
-                        let narrow =
-                            extract_narrowings(cond, &|n| ctx.lookup_var_effective_ty(n));
+                        let narrow = extract_narrowings(cond, &|n| ctx.lookup_var_effective_ty(n));
                         let cond_ty = self.check_cond_with_narrowing(cond, ctx)?;
                         if cond_ty != Type::Bool {
                             return Err(SemaError {
@@ -302,7 +301,11 @@ impl TypeChecker {
         }
     }
 
-    pub(crate) fn verify_mutable_lvalue(&self, lv: &Expr, ctx: &FnCheckCtx) -> Result<(), SemaError> {
+    pub(crate) fn verify_mutable_lvalue(
+        &self,
+        lv: &Expr,
+        ctx: &FnCheckCtx,
+    ) -> Result<(), SemaError> {
         match &lv.kind {
             ExprKind::Ident(name) => {
                 let info = ctx.lookup_var_raw(name).ok_or_else(|| SemaError {
@@ -340,7 +343,9 @@ impl TypeChecker {
                 }
                 Ok(())
             }
-            ExprKind::Field { expr: base, safe, .. } => {
+            ExprKind::Field {
+                expr: base, safe, ..
+            } => {
                 if *safe {
                     return Err(SemaError {
                         message: "cannot mutate through safe-call `?.`".into(),
@@ -349,7 +354,9 @@ impl TypeChecker {
                 }
                 self.verify_mutable_lvalue(base, ctx)
             }
-            ExprKind::Index { expr: base, safe, .. } => {
+            ExprKind::Index {
+                expr: base, safe, ..
+            } => {
                 if *safe {
                     return Err(SemaError {
                         message: "cannot mutate through safe-index `?[]`".into(),
@@ -606,15 +613,25 @@ impl TypeChecker {
                     }
                     let scoped_fn = format!("{}__{}", ctx.module_prefix, name);
                     if let Some(tpl) = self.func_templates.get(&scoped_fn).cloned() {
-                        if tpl.func.generics.is_empty() && tpl.func.params.iter().all(|p| p.ty.is_some()) {
+                        if tpl.func.generics.is_empty()
+                            && tpl.func.params.iter().all(|p| p.ty.is_some())
+                        {
                             let empty = HashMap::new();
                             let mut ptys = Vec::new();
                             for p in &tpl.func.params {
-                                ptys.push(self.resolve_type_expr(p.ty.as_ref().unwrap(), &empty, expr.span)?);
+                                ptys.push(self.resolve_type_expr(
+                                    p.ty.as_ref().unwrap(),
+                                    &empty,
+                                    expr.span,
+                                )?);
                             }
-                            let (c_name, ret_ty) = self.instantiate_template(&scoped_fn, None, &ptys, &[], expr.span)?;
+                            let (c_name, ret_ty) =
+                                self.instantiate_template(&scoped_fn, None, &ptys, &[], expr.span)?;
                             ctx.call_targets.insert(span_key(expr.span), c_name);
-                            return Ok(Type::Func { params: ptys, ret: Box::new(ret_ty) });
+                            return Ok(Type::Func {
+                                params: ptys,
+                                ret: Box::new(ret_ty),
+                            });
                         }
                     }
                 }
@@ -632,15 +649,25 @@ impl TypeChecker {
                 }
                 // Reference to concrete top-level function as value (e.g. `items ~> double_all` or `time.measure_ms(work)`)
                 if let Some(tpl) = self.func_templates.get(name).cloned() {
-                    if tpl.func.generics.is_empty() && tpl.func.params.iter().all(|p| p.ty.is_some()) {
+                    if tpl.func.generics.is_empty()
+                        && tpl.func.params.iter().all(|p| p.ty.is_some())
+                    {
                         let empty = HashMap::new();
                         let mut ptys = Vec::new();
                         for p in &tpl.func.params {
-                            ptys.push(self.resolve_type_expr(p.ty.as_ref().unwrap(), &empty, expr.span)?);
+                            ptys.push(self.resolve_type_expr(
+                                p.ty.as_ref().unwrap(),
+                                &empty,
+                                expr.span,
+                            )?);
                         }
-                        let (c_name, ret_ty) = self.instantiate_template(name, None, &ptys, &[], expr.span)?;
+                        let (c_name, ret_ty) =
+                            self.instantiate_template(name, None, &ptys, &[], expr.span)?;
                         ctx.call_targets.insert(span_key(expr.span), c_name);
-                        return Ok(Type::Func { params: ptys, ret: Box::new(ret_ty) });
+                        return Ok(Type::Func {
+                            params: ptys,
+                            ret: Box::new(ret_ty),
+                        });
                     }
                 }
                 Err(SemaError {
@@ -667,13 +694,11 @@ impl TypeChecker {
                 Ok(resolved)
             }
             ExprKind::TypeVal(te) => self.resolve_type_expr(te, &ctx.type_subst, expr.span),
-            ExprKind::CurrentItem => {
-                ctx.current_item_ty().ok_or_else(|| SemaError {
-                    message: "`@` used outside of a pipeline `{ ... }`, method, or error handler"
-                        .into(),
-                    span: expr.span,
-                })
-            }
+            ExprKind::CurrentItem => ctx.current_item_ty().ok_or_else(|| SemaError {
+                message: "`@` used outside of a pipeline `{ ... }`, method, or error handler"
+                    .into(),
+                span: expr.span,
+            }),
             ExprKind::SelfFn => ctx.self_fn_ty.clone().ok_or_else(|| SemaError {
                 message: "`$` anonymous recursion used outside of a function".into(),
                 span: expr.span,
@@ -1410,7 +1435,10 @@ impl TypeChecker {
                         if cty != Type::Bool {
                             ctx.pop_scope();
                             return Err(SemaError {
-                                message: format!("`@ (...)` condition must be `bool`, found `{}`", cty),
+                                message: format!(
+                                    "`@ (...)` condition must be `bool`, found `{}`",
+                                    cty
+                                ),
                                 span: cond.span,
                             });
                         }
@@ -1528,7 +1556,10 @@ impl TypeChecker {
                 Type::Array(_) | Type::Range(_) | Type::Generator(_) | Type::Set(_)
             )
         {
-            let unwrapped = lty.unwrap_nullable().cloned().unwrap_or_else(|| lty.clone());
+            let unwrapped = lty
+                .unwrap_nullable()
+                .cloned()
+                .unwrap_or_else(|| lty.clone());
             if let PipeStage::Map { param, body } = stage {
                 ctx.push_current_item(unwrapped.clone(), false);
                 ctx.push_scope();
@@ -1607,7 +1638,10 @@ impl TypeChecker {
                 ctx.pop_current_item();
                 if bty != Type::Bool {
                     return Err(SemaError {
-                        message: format!("filter stage `? {{ ... }}` must return `bool`, found `{}`", bty),
+                        message: format!(
+                            "filter stage `? {{ ... }}` must return `bool`, found `{}`",
+                            bty
+                        ),
                         span,
                     });
                 }
@@ -1675,9 +1709,7 @@ impl TypeChecker {
                 let _ = self.check_expr(end, None, ctx)?;
                 Ok(())
             }
-            Pattern::Ident(name) => {
-                ctx.define_var(name, scrutinee_ty.clone(), false, span)
-            }
+            Pattern::Ident(name) => ctx.define_var(name, scrutinee_ty.clone(), false, span),
             Pattern::Or(alts) => {
                 if let Some(first) = alts.first() {
                     self.bind_pattern(first, scrutinee_ty, span, ctx)?;
@@ -1708,9 +1740,7 @@ impl TypeChecker {
                 Ok(())
             }
             Pattern::Struct {
-                type_name,
-                fields,
-                ..
+                type_name, fields, ..
             } => {
                 if let Type::Enum(en_name) = base_ty {
                     if let Some(tn) = type_name {
@@ -1928,10 +1958,7 @@ impl FnCheckCtx {
     }
 
     pub fn current_item_is_mut(&self) -> bool {
-        self.current_items
-            .last()
-            .map(|(_, m)| *m)
-            .unwrap_or(false)
+        self.current_items.last().map(|(_, m)| *m).unwrap_or(false)
     }
 
     pub fn record_expr_type(&mut self, span: Span, ty: Type) {

@@ -184,8 +184,16 @@ pub fn c_default_zero(ty: &Type) -> String {
     match ty {
         Type::Unit | Type::Never | Type::Null => "lo_unit_val()".into(),
         Type::Bool => "false".into(),
-        Type::I8 | Type::I16 | Type::I32 | Type::I64 | Type::U8 | Type::U16 | Type::U32
-        | Type::U64 | Type::Usz | Type::Char => "0".into(),
+        Type::I8
+        | Type::I16
+        | Type::I32
+        | Type::I64
+        | Type::U8
+        | Type::U16
+        | Type::U32
+        | Type::U64
+        | Type::Usz
+        | Type::Char => "0".into(),
         Type::F32 | Type::F64 => "0.0".into(),
         Type::Str => "lo_str_lit(\"\", 0)".into(),
         Type::Array(_)
@@ -199,11 +207,7 @@ pub fn c_default_zero(ty: &Type) -> String {
     }
 }
 
-pub fn emit_type_definitions(
-    prog: &CheckedProgram,
-    reg: &TypeRegistry,
-    out: &mut String,
-) {
+pub fn emit_type_definitions(prog: &CheckedProgram, reg: &TypeRegistry, out: &mut String) {
     let _ = writeln!(
         out,
         "typedef struct {{ int64_t start; int64_t end; bool inclusive; }} lo_range_i64_t;\n"
@@ -229,6 +233,7 @@ pub fn emit_type_definitions(
     let mut emitted_tups: HashSet<String> = HashSet::new();
     let mut emitted_fns: HashSet<String> = HashSet::new();
 
+    #[allow(clippy::too_many_arguments)]
     fn ensure_value_type(
         ty: &Type,
         structs: &HashMap<String, CheckedStruct>,
@@ -322,12 +327,8 @@ pub fn emit_type_definitions(
                                 CheckedVariantPayload::Tuple(ts) => {
                                     let _ = writeln!(out, "        struct {{");
                                     for (i, t) in ts.iter().enumerate() {
-                                        let _ = writeln!(
-                                            out,
-                                            "            {} v{};",
-                                            c_type_name(t),
-                                            i
-                                        );
+                                        let _ =
+                                            writeln!(out, "            {} v{};", c_type_name(t), i);
                                     }
                                     let _ = writeln!(out, "        }} {};", v.name);
                                 }

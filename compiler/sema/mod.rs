@@ -41,6 +41,7 @@ pub struct TypeChecker {
     pub(crate) active_mono: HashMap<String, Type>,
     pub(crate) mono_funcs: Vec<MonoFunc>,
     pub(crate) next_type_id: u32,
+    pub(crate) next_mod_id: usize,
     pub(crate) main_c_name: Option<String>,
 }
 
@@ -77,6 +78,7 @@ impl TypeChecker {
             active_mono: HashMap::new(),
             mono_funcs: Vec::new(),
             next_type_id: 1,
+            next_mod_id: 1,
             main_c_name: None,
         }
     }
@@ -97,7 +99,11 @@ impl TypeChecker {
             return Some(manifest_std);
         }
         if let Ok(exe) = std::env::current_exe() {
-            if let Some(root) = exe.parent().and_then(|p| p.parent()).and_then(|p| p.parent()) {
+            if let Some(root) = exe
+                .parent()
+                .and_then(|p| p.parent())
+                .and_then(|p| p.parent())
+            {
                 let p = root.join("std");
                 if p.exists() {
                     return Some(p);
@@ -272,9 +278,7 @@ impl TypeChecker {
                         self.externs.push(sig.clone());
                         self.extern_map.insert(name.clone(), sig.clone());
                         if *is_pub {
-                            exports
-                                .values
-                                .insert(name.clone(), ModuleSym::ExternC(sig));
+                            exports.values.insert(name.clone(), ModuleSym::ExternC(sig));
                         }
                     }
                     ExprKind::Func(fdef) => {
@@ -419,7 +423,10 @@ impl TypeChecker {
                                 p.span,
                             )?);
                         }
-                        let recv_ty = tpl.receiver_type.as_ref().map(|rn| Type::Struct(rn.clone()));
+                        let recv_ty = tpl
+                            .receiver_type
+                            .as_ref()
+                            .map(|rn| Type::Struct(rn.clone()));
                         let _ =
                             self.instantiate_template(&key, recv_ty, &ptys, &[], tpl.func.span)?;
                     }
@@ -462,7 +469,11 @@ impl TypeChecker {
         if let Some(path) = resolved_path {
             if !path.exists() {
                 return Err(SemaError {
-                    message: format!("imported module `{}` not found at `{}`", import_spec, path.display()),
+                    message: format!(
+                        "imported module `{}` not found at `{}`",
+                        import_spec,
+                        path.display()
+                    ),
                     span,
                 });
             }
@@ -489,7 +500,8 @@ impl TypeChecker {
                 span: e.span,
             })?;
 
-            let mod_id = format!("mod{}", self.modules.len() + 1);
+            let mod_id = format!("mod{}", self.next_mod_id);
+            self.next_mod_id += 1;
             self.loading_stack.push(canon.clone());
             // Save & restore module_aliases so imports are file-scoped
             let saved_aliases = self.module_aliases.clone();
@@ -932,15 +944,17 @@ impl TypeChecker {
                 let en = self.enums[&enum_name].clone();
                 if let CheckedVariantPayload::Struct(vfields) = &en.variants[v_idx].payload {
                     for (fname, fexpr) in fields {
-                        let vf = vfields.iter().find(|f| &f.name == fname).ok_or_else(|| {
-                            SemaError {
-                                message: format!(
-                                    "variant `{}.{}` has no field `{}`",
-                                    enum_name, tn, fname
-                                ),
-                                span: fexpr.span,
-                            }
-                        })?;
+                        let vf =
+                            vfields
+                                .iter()
+                                .find(|f| &f.name == fname)
+                                .ok_or_else(|| SemaError {
+                                    message: format!(
+                                        "variant `{}.{}` has no field `{}`",
+                                        enum_name, tn, fname
+                                    ),
+                                    span: fexpr.span,
+                                })?;
                         let vty = self.check_expr(fexpr, Some(&vf.ty), ctx)?;
                         if !vty.is_assignable_to(&vf.ty) {
                             return Err(SemaError {
@@ -998,10 +1012,7 @@ impl TypeChecker {
                 let sp_ty = self.check_expr(sp_expr, Some(&Type::Struct(sn.clone())), ctx)?;
                 if sp_ty != Type::Struct(sn.clone()) {
                     return Err(SemaError {
-                        message: format!(
-                            "spread base has type `{}`, expected `[{}]`",
-                            sp_ty, sn
-                        ),
+                        message: format!("spread base has type `{}`, expected `[{}]`", sp_ty, sn),
                         span: sp_expr.span,
                     });
                 }
@@ -1114,7 +1125,10 @@ impl TypeChecker {
                 "code" => Ok(Type::I64),
                 "msg" | "reason" => Ok(Type::Str),
                 _ => Err(SemaError {
-                    message: format!("error value has no field `{}` (available: `code`, `msg`)", field),
+                    message: format!(
+                        "error value has no field `{}` (available: `code`, `msg`)",
+                        field
+                    ),
                     span,
                 }),
             },
@@ -1235,10 +1249,8 @@ impl TypeChecker {
                                     });
                                 }
                             }
-                            ctx.call_targets.insert(
-                                span_key(span),
-                                format!("__enum_{}_{}", tname, field),
-                            );
+                            ctx.call_targets
+                                .insert(span_key(span), format!("__enum_{}_{}", tname, field));
                             return Ok(Type::Enum(tname.clone()));
                         }
                     }
@@ -1279,7 +1291,9 @@ impl TypeChecker {
             // User-defined Type.method or Type.method!
             if let Type::Struct(ref sn) = base_recv {
                 let base_sn = sn.split("__").next().unwrap_or(sn).to_string();
-                let lookup_key = if self.method_templates.contains_key(&(sn.clone(), field.clone()))
+                let lookup_key = if self
+                    .method_templates
+                    .contains_key(&(sn.clone(), field.clone()))
                 {
                     Some((sn.clone(), field.clone()))
                 } else if self
@@ -1552,10 +1566,8 @@ impl TypeChecker {
                     _ => None,
                 };
                 if let Some(r) = ret {
-                    ctx.call_targets.insert(
-                        span_key(span),
-                        format!("__arr_{}", sanitize_ident(method)),
-                    );
+                    ctx.call_targets
+                        .insert(span_key(span), format!("__arr_{}", sanitize_ident(method)));
                     return Ok(Some(r));
                 }
             }
@@ -1580,10 +1592,8 @@ impl TypeChecker {
                     _ => None,
                 };
                 if let Some(r) = ret {
-                    ctx.call_targets.insert(
-                        span_key(span),
-                        format!("__set_{}", sanitize_ident(method)),
-                    );
+                    ctx.call_targets
+                        .insert(span_key(span), format!("__set_{}", sanitize_ident(method)));
                     return Ok(Some(r));
                 }
             }
@@ -1607,10 +1617,8 @@ impl TypeChecker {
                     _ => None,
                 };
                 if let Some(r) = ret {
-                    ctx.call_targets.insert(
-                        span_key(span),
-                        format!("__map_{}", sanitize_ident(method)),
-                    );
+                    ctx.call_targets
+                        .insert(span_key(span), format!("__map_{}", sanitize_ident(method)));
                     return Ok(Some(r));
                 }
             }
@@ -1645,7 +1653,10 @@ impl TypeChecker {
             let aty = self.check_expr(a, Some(exp), ctx)?;
             if !aty.is_assignable_to(exp) {
                 return Err(SemaError {
-                    message: format!("argument type mismatch: expected `{}`, found `{}`", exp, aty),
+                    message: format!(
+                        "argument type mismatch: expected `{}`, found `{}`",
+                        exp, aty
+                    ),
                     span: a.span,
                 });
             }
@@ -1661,10 +1672,14 @@ impl TypeChecker {
         explicit_generics: &[Type],
         call_span: Span,
     ) -> Result<(String, Type), SemaError> {
-        let tpl = self.func_templates.get(key).cloned().ok_or_else(|| SemaError {
-            message: format!("unknown function `{}`", key),
-            span: call_span,
-        })?;
+        let tpl = self
+            .func_templates
+            .get(key)
+            .cloned()
+            .ok_or_else(|| SemaError {
+                message: format!("unknown function `{}`", key),
+                span: call_span,
+            })?;
 
         // Infer or bind `<T [Bound]>` generic parameters
         let mut subst = HashMap::new();
@@ -1743,7 +1758,10 @@ impl TypeChecker {
                 declared_pty.unwrap_or(dty)
             } else {
                 return Err(SemaError {
-                    message: format!("missing required argument `{}` in call to `{}`", p.name, key),
+                    message: format!(
+                        "missing required argument `{}` in call to `{}`",
+                        p.name, key
+                    ),
                     span: call_span,
                 });
             };
@@ -1982,7 +2000,8 @@ mod tests {
           fibonacci(100) ~> { print(@) }
         }
         "#;
-        let checked = TypeChecker::check_source(src).expect("generics, interfaces, generators should typecheck");
+        let checked = TypeChecker::check_source(src)
+            .expect("generics, interfaces, generators should typecheck");
         assert!(checked.funcs.iter().any(|f| f.is_generator));
     }
 }

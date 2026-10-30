@@ -70,8 +70,8 @@ pub fn content_hash_hex(bytes: &[u8]) -> String {
 
 /// Parse `Lomake.lo` written in genuine `lo` syntax.
 pub fn parse_lomake_manifest(src: &str) -> Result<ProjectConfig, String> {
-    let mut prog = Parser::parse_source(src)
-        .map_err(|e| format!("Lomake.lo syntax error: {}", e))?;
+    let mut prog =
+        Parser::parse_source(src).map_err(|e| format!("Lomake.lo syntax error: {}", e))?;
     ComptimeEvaluator::evaluate_program(&mut prog)
         .map_err(|e| format!("Lomake.lo comptime error: {}", e))?;
 
@@ -123,7 +123,10 @@ pub fn parse_lomake_manifest(src: &str) -> Result<ProjectConfig, String> {
                             cfg.std_path = Some(expect_str(fexpr, "std_path")?);
                         }
                         other => {
-                            return Err(format!("unknown field `{}` in Lomake.lo `project`", other));
+                            return Err(format!(
+                                "unknown field `{}` in Lomake.lo `project`",
+                                other
+                            ));
                         }
                     }
                 }
@@ -141,7 +144,10 @@ pub fn parse_lomake_manifest(src: &str) -> Result<ProjectConfig, String> {
 fn expect_str(e: &Expr, field: &str) -> Result<String, String> {
     match &e.kind {
         ExprKind::Str(s) => Ok(s.clone()),
-        _ => Err(format!("field `{}` in Lomake.lo must be a string literal", field)),
+        _ => Err(format!(
+            "field `{}` in Lomake.lo must be a string literal",
+            field
+        )),
     }
 }
 
@@ -239,8 +245,8 @@ fn visit_module(
     let hash = content_hash_hex(src.as_bytes());
     visited.insert(canon.clone(), hash);
 
-    let prog = Parser::parse_source(&src)
-        .map_err(|e| format!("in `{}`: {}", canon.display(), e))?;
+    let prog =
+        Parser::parse_source(&src).map_err(|e| format!("in `{}`: {}", canon.display(), e))?;
 
     let mut imports = Vec::new();
     collect_imports_from_program(&prog, &mut imports);
@@ -400,10 +406,7 @@ pub fn cmd_init(base_dir: &Path, name: &str) -> Result<PathBuf, String> {
     }
     let proj_dir = base_dir.join(name);
     if proj_dir.exists() {
-        return Err(format!(
-            "directory `{}` already exists",
-            proj_dir.display()
-        ));
+        return Err(format!("directory `{}` already exists", proj_dir.display()));
     }
 
     fs::create_dir_all(proj_dir.join("src"))
@@ -449,6 +452,14 @@ pub fn cmd_init(base_dir: &Path, name: &str) -> Result<PathBuf, String> {
 
 /// `lomake build`: resolves import graph, checks incremental module hash cache, compiles & links binary into `build/<name>`.
 pub fn cmd_build(project_dir: &Path) -> Result<BuildReport, String> {
+    let canon_dir = project_dir.canonicalize().map_err(|e| {
+        format!(
+            "invalid project directory `{}`: {}",
+            project_dir.display(),
+            e
+        )
+    })?;
+    let project_dir = canon_dir.as_path();
     let (cfg, manifest_hash) = load_project_config(project_dir)?;
     let entry_path = project_dir.join(&cfg.entry);
     if !entry_path.exists() {
@@ -478,11 +489,9 @@ pub fn cmd_build(project_dir: &Path) -> Result<BuildReport, String> {
         });
     }
 
-    fs::create_dir_all(&build_dir)
-        .map_err(|e| format!("failed to create `build/`: {}", e))?;
+    fs::create_dir_all(&build_dir).map_err(|e| format!("failed to create `build/`: {}", e))?;
 
-    let checked = TypeChecker::check_file(&entry_path, std_dir)
-        .map_err(|e| format!("{}", e))?;
+    let checked = TypeChecker::check_file(&entry_path, std_dir).map_err(|e| format!("{}", e))?;
     let c_code = emit_c_program(&checked);
 
     let c_cache_dir = build_dir.join(".cache");
@@ -515,7 +524,13 @@ pub fn cmd_run(project_dir: &Path, args: &[String]) -> Result<i32, String> {
         .current_dir(project_dir)
         .args(args)
         .status()
-        .map_err(|e| format!("failed to execute `{}`: {}", report.binary_path.display(), e))?;
+        .map_err(|e| {
+            format!(
+                "failed to execute `{}`: {}",
+                report.binary_path.display(),
+                e
+            )
+        })?;
     Ok(status.code().unwrap_or(1))
 }
 
@@ -543,6 +558,14 @@ fn discover_lo_files(dir: &Path, out: &mut Vec<PathBuf>) -> Result<(), String> {
 
 /// `lomake test`: discovers all `.lo` files in `tests/`, compiles (with cache) & executes each.
 pub fn cmd_test(project_dir: &Path) -> Result<TestSummary, String> {
+    let canon_dir = project_dir.canonicalize().map_err(|e| {
+        format!(
+            "invalid project directory `{}`: {}",
+            project_dir.display(),
+            e
+        )
+    })?;
+    let project_dir = canon_dir.as_path();
     let (cfg, manifest_hash) = load_project_config(project_dir)?;
     let test_root = project_dir.join(&cfg.test_dir);
     let mut test_files = Vec::new();
@@ -685,8 +708,7 @@ mod tests {
 
     #[test]
     fn test_lomake_lifecycle_init_build_cache_test_clean() {
-        let tmp_root =
-            std::env::temp_dir().join(format!("lomake_test_{}", std::process::id()));
+        let tmp_root = std::env::temp_dir().join(format!("lomake_test_{}", std::process::id()));
         let _ = fs::remove_dir_all(&tmp_root);
         fs::create_dir_all(&tmp_root).unwrap();
 

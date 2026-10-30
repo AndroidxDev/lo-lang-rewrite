@@ -58,7 +58,10 @@ impl<'a> Lexer<'a> {
                 let col = self.col;
                 self.advance();
                 let end = self.abs_pos();
-                if !matches!(tokens.last().map(|t| &t.kind), Some(TokenKind::Newline) | None) {
+                if !matches!(
+                    tokens.last().map(|t| &t.kind),
+                    Some(TokenKind::Newline) | None
+                ) {
                     tokens.push(Token::new(
                         TokenKind::Newline,
                         Span::new(start, end, line, col),
@@ -144,7 +147,13 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn err<T>(&self, start: usize, line: usize, col: usize, msg: impl Into<String>) -> Result<T, LexError> {
+    fn err<T>(
+        &self,
+        start: usize,
+        line: usize,
+        col: usize,
+        msg: impl Into<String>,
+    ) -> Result<T, LexError> {
         Err(LexError {
             message: msg.into(),
             span: Span::new(start, self.abs_pos(), line, col),
@@ -160,7 +169,12 @@ impl<'a> Lexer<'a> {
 
         while depth > 0 {
             if self.peek().is_none() {
-                return self.err(start, line, col, "unterminated nested block comment `#[ ... ]#`");
+                return self.err(
+                    start,
+                    line,
+                    col,
+                    "unterminated nested block comment `#[ ... ]#`",
+                );
             }
             if self.starts_with("#[") {
                 self.advance_n(2);
@@ -427,12 +441,7 @@ impl<'a> Lexer<'a> {
         }
 
         self.advance();
-        self.err(
-            start,
-            line,
-            col,
-            format!("unexpected character `{}`", ch),
-        )
+        self.err(start, line, col, format!("unexpected character `{}`", ch))
     }
 
     fn scan_identifier(&mut self, had_space: bool) -> Token {
@@ -500,11 +509,10 @@ impl<'a> Lexer<'a> {
             if digits.is_empty() {
                 return self.err(start, line, col, "expected hex digits after `0x`");
             }
-            let val = u64::from_str_radix(&digits, 16)
-                .map_err(|e| LexError {
-                    message: format!("invalid hex integer `0x{}`: {}", digits, e),
-                    span: Span::new(start, self.abs_pos(), line, col),
-                })?;
+            let val = u64::from_str_radix(&digits, 16).map_err(|e| LexError {
+                message: format!("invalid hex integer `0x{}`: {}", digits, e),
+                span: Span::new(start, self.abs_pos(), line, col),
+            })?;
             return Ok(Token::new(
                 TokenKind::IntLit(val as i64),
                 Span::new(start, self.abs_pos(), line, col),
@@ -529,11 +537,10 @@ impl<'a> Lexer<'a> {
             if digits.is_empty() {
                 return self.err(start, line, col, "expected binary digits after `0b`");
             }
-            let val = u64::from_str_radix(&digits, 2)
-                .map_err(|e| LexError {
-                    message: format!("invalid binary integer `0b{}`: {}", digits, e),
-                    span: Span::new(start, self.abs_pos(), line, col),
-                })?;
+            let val = u64::from_str_radix(&digits, 2).map_err(|e| LexError {
+                message: format!("invalid binary integer `0b{}`: {}", digits, e),
+                span: Span::new(start, self.abs_pos(), line, col),
+            })?;
             return Ok(Token::new(
                 TokenKind::IntLit(val as i64),
                 Span::new(start, self.abs_pos(), line, col),
@@ -593,7 +600,12 @@ impl<'a> Lexer<'a> {
                 }
             }
             if exp_digits == 0 {
-                return self.err(start, line, col, "expected exponent digits in float literal");
+                return self.err(
+                    start,
+                    line,
+                    col,
+                    "expected exponent digits in float literal",
+                );
             }
         }
 
@@ -650,7 +662,12 @@ impl<'a> Lexer<'a> {
         };
 
         if self.peek() != Some('\'') {
-            return self.err(start, line, col, "expected closing `'` after character literal");
+            return self.err(
+                start,
+                line,
+                col,
+                "expected closing `'` after character literal",
+            );
         }
         self.advance();
 
@@ -661,7 +678,12 @@ impl<'a> Lexer<'a> {
         ))
     }
 
-    fn scan_escape_char(&mut self, start: usize, line: usize, col: usize) -> Result<char, LexError> {
+    fn scan_escape_char(
+        &mut self,
+        start: usize,
+        line: usize,
+        col: usize,
+    ) -> Result<char, LexError> {
         match self.advance() {
             Some('n') => Ok('\n'),
             Some('r') => Ok('\r'),
@@ -677,7 +699,14 @@ impl<'a> Lexer<'a> {
                 for _ in 0..2 {
                     match self.advance() {
                         Some(h) if h.is_ascii_hexdigit() => hex.push(h),
-                        _ => return self.err(start, line, col, "expected two hex digits after `\\x`"),
+                        _ => {
+                            return self.err(
+                                start,
+                                line,
+                                col,
+                                "expected two hex digits after `\\x`",
+                            )
+                        }
                     }
                 }
                 let byte = u8::from_str_radix(&hex, 16).unwrap();
@@ -795,7 +824,10 @@ impl<'a> Lexer<'a> {
                         Lexer::with_offset(expr_slice, expr_abs_start, expr_line, expr_col);
                     let mut expr_tokens = sub_lexer.scan_all(true)?;
                     // Strip leading/trailing newlines inside interpolation if any
-                    if matches!(expr_tokens.first().map(|t| &t.kind), Some(TokenKind::Newline)) {
+                    if matches!(
+                        expr_tokens.first().map(|t| &t.kind),
+                        Some(TokenKind::Newline)
+                    ) {
                         expr_tokens.remove(0);
                     }
                     parts.push(InterpPart::ExprTokens(expr_tokens));
@@ -808,7 +840,11 @@ impl<'a> Lexer<'a> {
 
         let span = Span::new(start, self.abs_pos(), line, col);
         if !has_interp {
-            Ok(Token::new(TokenKind::StringLit(current_lit), span, had_space))
+            Ok(Token::new(
+                TokenKind::StringLit(current_lit),
+                span,
+                had_space,
+            ))
         } else {
             if !current_lit.is_empty() {
                 parts.push(InterpPart::Literal(current_lit));
@@ -922,6 +958,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::approx_constant)]
     fn test_ranges_not_confused_with_floats_and_labels() {
         let src = "0..10, 1..=100, 3.14, #search { ^#search 0 }";
         let tokens = Lexer::tokenize(src).expect("lex should succeed");

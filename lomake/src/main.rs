@@ -29,6 +29,17 @@ fn parse_project_dir_and_args(args: &[String]) -> Result<(PathBuf, Vec<String>),
                 .get(i)
                 .ok_or_else(|| "missing directory path after `--dir`".to_string())?;
             dir = PathBuf::from(val);
+        } else if args[i] == "--manifest" {
+            i += 1;
+            let val = args
+                .get(i)
+                .ok_or_else(|| "missing file path after `--manifest`".to_string())?;
+            let mp = PathBuf::from(val);
+            dir = mp
+                .parent()
+                .filter(|p| !p.as_os_str().is_empty())
+                .map(PathBuf::from)
+                .unwrap_or_else(|| PathBuf::from("."));
         } else {
             return Err(format!("unexpected argument `{}`", args[i]));
         }
@@ -62,7 +73,10 @@ fn main() {
             });
             match cmd_init(&base_dir, name) {
                 Ok(path) => {
-                    println!("[lomake] Initialized new lo project at `{}`", path.display());
+                    println!(
+                        "[lomake] Initialized new lo project at `{}`",
+                        path.display()
+                    );
                 }
                 Err(e) => {
                     eprintln!("error: {}", e);
@@ -100,11 +114,10 @@ fn main() {
             }
         }
         "run" => {
-            let (proj_dir, run_args) =
-                parse_project_dir_and_args(&args[2..]).unwrap_or_else(|e| {
-                    eprintln!("error: {}", e);
-                    process::exit(1);
-                });
+            let (proj_dir, run_args) = parse_project_dir_and_args(&args[2..]).unwrap_or_else(|e| {
+                eprintln!("error: {}", e);
+                process::exit(1);
+            });
             match cmd_run(&proj_dir, &run_args) {
                 Ok(code) => process::exit(code),
                 Err(e) => {

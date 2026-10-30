@@ -1,9 +1,7 @@
 use crate::codegen::c_types::{c_default_zero, c_type_name};
 use crate::lexer::Span;
 use crate::parser::*;
-use crate::sema::{
-    sanitize_ident, span_key, CheckedProgram, CheckedVariantPayload, SpanKey, Type,
-};
+use crate::sema::{sanitize_ident, span_key, CheckedProgram, CheckedVariantPayload, SpanKey, Type};
 use std::collections::HashMap;
 use std::fmt::Write;
 
@@ -112,10 +110,8 @@ impl<'a> FnEmitCtx<'a> {
                 seen.insert(lo_n.clone(), (expr_s, ty.clone()));
             }
         }
-        let mut res: Vec<(String, String, Type)> = seen
-            .into_iter()
-            .map(|(k, (ce, ty))| (k, ce, ty))
-            .collect();
+        let mut res: Vec<(String, String, Type)> =
+            seen.into_iter().map(|(k, (ce, ty))| (k, ce, ty)).collect();
         res.sort_by(|a, b| a.0.cmp(&b.0));
         res
     }
@@ -135,8 +131,7 @@ impl<'a> FnEmitCtx<'a> {
                 let _ = writeln!(out, "    {} {} = {};", c_type_name(from), src_tmp, val);
                 let _ = writeln!(out, "    {} {} = {{ .has_val = false }};", opt_c, tmp);
                 let _ = writeln!(out, "    if ({}.has_val) {{", src_tmp);
-                let inner_v =
-                    self.coerce(&format!("{}.val", src_tmp), inner_from, inner_to, out);
+                let inner_v = self.coerce(&format!("{}.val", src_tmp), inner_from, inner_to, out);
                 let _ = writeln!(out, "        {}.has_val = true;", tmp);
                 let _ = writeln!(out, "        {}.val = {};", tmp, inner_v);
                 let _ = writeln!(out, "    }}");
@@ -305,7 +300,11 @@ impl<'a> FnEmitCtx<'a> {
             let _ = writeln!(out, "    {} {} = {};", c_type_name(lty), ta, lv);
             let _ = writeln!(out, "    {} {} = {};", c_type_name(rty), tb, rv);
             let _ = writeln!(out, "    bool {} = false;", tres);
-            let _ = writeln!(out, "    if (!{}.has_val && !{}.has_val) {{ {} = true; }}", ta, tb, tres);
+            let _ = writeln!(
+                out,
+                "    if (!{}.has_val && !{}.has_val) {{ {} = true; }}",
+                ta, tb, tres
+            );
             let _ = writeln!(out, "    else if ({}.has_val && {}.has_val) {{", ta, tb);
             let sub = self.emit_eq(&format!("{}.val", ta), &format!("{}.val", tb), ia, ib, out);
             let _ = writeln!(out, "        {} = {};", tres, sub);
@@ -455,9 +454,12 @@ impl<'a> FnEmitCtx<'a> {
                     return target_c.clone();
                 }
                 if !self.module_prefix.is_empty() {
-                    if let Some(g) = self.prog.globals.iter().find(|g| {
-                        g.module_prefix == self.module_prefix && &g.lo_name == name
-                    }) {
+                    if let Some(g) = self
+                        .prog
+                        .globals
+                        .iter()
+                        .find(|g| g.module_prefix == self.module_prefix && &g.lo_name == name)
+                    {
                         return g.c_name.clone();
                     }
                 }
@@ -471,10 +473,7 @@ impl<'a> FnEmitCtx<'a> {
                 if let Type::Enum(ref ename) = ety {
                     if let Some(en) = self.prog.enums.get(ename) {
                         if let Some(v) = en.variants.iter().find(|v| &v.name == name) {
-                            return format!(
-                                "((lo_en_{}){{ .tag = {}u }})",
-                                ename, v.tag
-                            );
+                            return format!("((lo_en_{}){{ .tag = {}u }})", ename, v.tag);
                         }
                     }
                 }
@@ -492,10 +491,7 @@ impl<'a> FnEmitCtx<'a> {
                 }
                 "lo_unit_val()".into()
             }
-            ExprKind::SelfFn => self
-                .self_fn_c_name
-                .clone()
-                .unwrap_or_else(|| "NULL".into()),
+            ExprKind::SelfFn => self.self_fn_c_name.clone().unwrap_or_else(|| "NULL".into()),
             ExprKind::Array(elems) => {
                 if let Type::Tuple(ref tup_tys) = ety {
                     let tmp = self.fresh_tmp("tup");
@@ -540,7 +536,13 @@ impl<'a> FnEmitCtx<'a> {
                 let vcoerced = self.coerce(&vv, &vraw, &elem_ty, out);
                 let cnt = self.emit_expr(count, out);
                 let vtmp = self.fresh_tmp("repv");
-                let _ = writeln!(out, "    {} {} = {};", c_type_name(&elem_ty), vtmp, vcoerced);
+                let _ = writeln!(
+                    out,
+                    "    {} {} = {};",
+                    c_type_name(&elem_ty),
+                    vtmp,
+                    vcoerced
+                );
                 format!(
                     "lo_vec_repeat(sizeof({}), &{}, (int64_t)({}))",
                     c_type_name(&elem_ty),
@@ -708,7 +710,9 @@ impl<'a> FnEmitCtx<'a> {
                         format!("(!({}))", eq)
                     }
                     BinOp::Add if ety == Type::Str => format!("lo_str_concat({}, {})", lv, rv),
-                    BinOp::Rem if ety.is_float() => format!("fmod((double)({}), (double)({}))", lv, rv),
+                    BinOp::Rem if ety.is_float() => {
+                        format!("fmod((double)({}), (double)({}))", lv, rv)
+                    }
                     BinOp::Lt | BinOp::Gt | BinOp::LtEq | BinOp::GtEq
                         if lty == Type::Str && rty == Type::Str =>
                     {
@@ -880,7 +884,11 @@ impl<'a> FnEmitCtx<'a> {
                                 let _ = writeln!(out, "    if ({}.has_val && {}.val && {} >= 0 && {} < {}.val->len) {{", btmp, btmp, itmp, itmp, btmp);
                                 format!("{}.val", btmp)
                             } else {
-                                let _ = writeln!(out, "    if ({} && {} >= 0 && {} < {}->len) {{", btmp, itmp, itmp, btmp);
+                                let _ = writeln!(
+                                    out,
+                                    "    if ({} && {} >= 0 && {} < {}->len) {{",
+                                    btmp, itmp, itmp, btmp
+                                );
                                 btmp
                             };
                             let raw_el = format!(
@@ -934,7 +942,10 @@ impl<'a> FnEmitCtx<'a> {
                             );
                             res
                         } else {
-                            format!("lo_str_char_at({}, (int64_t)({}), {})", bv, iv, expr.span.line)
+                            format!(
+                                "lo_str_char_at({}, (int64_t)({}), {})",
+                                bv, iv, expr.span.line
+                            )
                         }
                     }
                     _ => "lo_unit_val()".into(),
@@ -984,9 +995,7 @@ impl<'a> FnEmitCtx<'a> {
                 callee, args, safe, ..
             } => self.emit_call(callee, args, *safe, expr.span, &ety, out),
             ExprKind::Cast {
-                expr: inner,
-                safe,
-                ..
+                expr: inner, safe, ..
             } => {
                 let iv = self.emit_expr(inner, out);
                 let ity = self.expr_ty(inner.span);
@@ -1158,7 +1167,8 @@ impl<'a> FnEmitCtx<'a> {
                         let ret_ty = self.ret_ty.clone();
                         let rco = self.coerce(&rv, &rty, &ret_ty, out);
                         let rtmp = self.fresh_tmp("gret");
-                        let _ = writeln!(out, "        {} {} = {};", c_type_name(&ret_ty), rtmp, rco);
+                        let _ =
+                            writeln!(out, "        {} {} = {};", c_type_name(&ret_ty), rtmp, rco);
                         self.emit_active_defers(out, false);
                         let _ = writeln!(out, "        return {};", rtmp);
                     }
@@ -1186,9 +1196,7 @@ impl<'a> FnEmitCtx<'a> {
                 finally_block,
             } => self.emit_try(body, catches, finally_block.as_ref(), &ety, out),
             ExprKind::Loop { head, body } => self.emit_loop(head, body, &ety, None, out),
-            ExprKind::Labeled { label, expr: inner } => {
-                self.emit_labeled(label, inner, &ety, out)
-            }
+            ExprKind::Labeled { label, expr: inner } => self.emit_labeled(label, inner, &ety, out),
             ExprKind::BlockExpr(blk) => self.emit_block(blk, &ety, out),
             ExprKind::AsyncSpawn(blk) => self.emit_async_spawn(blk, &ety, out),
             ExprKind::Comptime(_) | ExprKind::Import(_) | ExprKind::ExternC { .. } => {
@@ -1295,13 +1303,7 @@ impl<'a> FnEmitCtx<'a> {
                             });
                         self.coerce(&dv, &draw, &sf.ty, out)
                     };
-                    let _ = writeln!(
-                        out,
-                        "    {}.f_{} = {};",
-                        tmp,
-                        sanitize_ident(&sf.name),
-                        dco
-                    );
+                    let _ = writeln!(out, "    {}.f_{} = {};", tmp, sanitize_ident(&sf.name), dco);
                 } else {
                     let _ = writeln!(
                         out,
@@ -1542,7 +1544,12 @@ impl<'a> FnEmitCtx<'a> {
                         let ptr_expr = self.emit_lvalue_addr(recv_expr, out);
                         let mut call_args = vec![ptr_expr];
                         for (idx, (_, pty, pdef)) in mf.params.iter().enumerate() {
-                            call_args.push(self.emit_call_arg(args.get(idx), pty, pdef.as_ref(), out));
+                            call_args.push(self.emit_call_arg(
+                                args.get(idx),
+                                pty,
+                                pdef.as_ref(),
+                                out,
+                            ));
                         }
                         let tmp = self.fresh_tmp("mcall");
                         let _ = writeln!(
@@ -1563,7 +1570,8 @@ impl<'a> FnEmitCtx<'a> {
                         let r_val = self.emit_expr(recv_expr, out);
                         let rtmp = self.fresh_tmp("mrecv");
                         let res = self.fresh_tmp("msafe");
-                        let _ = writeln!(out, "    {} {} = {};", c_type_name(&recv_ty), rtmp, r_val);
+                        let _ =
+                            writeln!(out, "    {} {} = {};", c_type_name(&recv_ty), rtmp, r_val);
                         let _ = writeln!(
                             out,
                             "    {} {} = {};",
@@ -1588,7 +1596,12 @@ impl<'a> FnEmitCtx<'a> {
                         let _ = writeln!(out, "    if ({}) {{", cond);
                         let mut call_args = vec![unwrapped_r];
                         for (idx, (_, pty, pdef)) in mf.params.iter().enumerate() {
-                            call_args.push(self.emit_call_arg(args.get(idx), pty, pdef.as_ref(), out));
+                            call_args.push(self.emit_call_arg(
+                                args.get(idx),
+                                pty,
+                                pdef.as_ref(),
+                                out,
+                            ));
                         }
                         let raw_tmp = self.fresh_tmp("msraw");
                         let _ = writeln!(
@@ -1612,7 +1625,12 @@ impl<'a> FnEmitCtx<'a> {
                         let r_val = self.emit_expr(recv_expr, out);
                         let mut call_args = vec![r_val];
                         for (idx, (_, pty, pdef)) in mf.params.iter().enumerate() {
-                            call_args.push(self.emit_call_arg(args.get(idx), pty, pdef.as_ref(), out));
+                            call_args.push(self.emit_call_arg(
+                                args.get(idx),
+                                pty,
+                                pdef.as_ref(),
+                                out,
+                            ));
                         }
                         let tmp = self.fresh_tmp("mcall");
                         let _ = writeln!(
@@ -1636,9 +1654,7 @@ impl<'a> FnEmitCtx<'a> {
 
         // 7. Direct Monomorphized Function Call or `$` Recursive Self-Call or Function Pointer Call
         let fn_c_expr = if matches!(callee.kind, ExprKind::SelfFn) {
-            self.self_fn_c_name
-                .clone()
-                .unwrap_or_else(|| "NULL".into())
+            self.self_fn_c_name.clone().unwrap_or_else(|| "NULL".into())
         } else if let Some(t) = target {
             t
         } else {
@@ -1768,7 +1784,11 @@ impl<'a> FnEmitCtx<'a> {
         let rtmp = self.fresh_tmp("brecv");
         let _ = writeln!(out, "    {} {} = {};", c_type_name(&rty), rtmp, rv);
 
-        let emit_core = |ctx: &mut Self, recv_unwrapped: &str, base_ty: &Type, buf: &mut String| -> (String, Type) {
+        let emit_core = |ctx: &mut Self,
+                         recv_unwrapped: &str,
+                         base_ty: &Type,
+                         buf: &mut String|
+         -> (String, Type) {
             match target {
                 "__str_trim" => (format!("lo_str_trim({})", recv_unwrapped), Type::Str),
                 "__str_upper" => (format!("lo_str_upper({})", recv_unwrapped), Type::Str),

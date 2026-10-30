@@ -350,7 +350,9 @@ impl<'a> FnEmitCtx<'a> {
                 if let Type::Array(fb_el) = fallback_val_ty {
                     Type::Array(Box::new(self.resolve_declared_bind_ty(Some(inner), fb_el)))
                 } else {
-                    Type::Array(Box::new(self.resolve_declared_bind_ty(Some(inner), &Type::I64)))
+                    Type::Array(Box::new(
+                        self.resolve_declared_bind_ty(Some(inner), &Type::I64),
+                    ))
                 }
             }
             TypeExpr::Named { name, generics } if generics.is_empty() => match name.as_str() {
@@ -782,8 +784,9 @@ impl<'a> FnEmitCtx<'a> {
                                                 tn,
                                                 sanitize_ident(fname)
                                             );
-                                            let sub_ok = self
-                                                .emit_pattern_assign_existing(fpat, &fc, &vf.ty, out);
+                                            let sub_ok = self.emit_pattern_assign_existing(
+                                                fpat, &fc, &vf.ty, out,
+                                            );
                                             let _ = writeln!(
                                                 out,
                                                 "            {} = {} && ({});",
@@ -910,7 +913,9 @@ impl<'a> FnEmitCtx<'a> {
             self.push_scope();
             let _ = writeln!(out, "        if (!{}) {{", handled);
             match catch {
-                CatchClause::Bind { name, body: cbody, .. } => {
+                CatchClause::Bind {
+                    name, body: cbody, ..
+                } => {
                     let _ = writeln!(out, "            {} = true;", handled);
                     let _ = writeln!(out, "            _lo_err.payload = NULL; lo_err_clear();");
                     if name == "@" {
@@ -987,11 +992,7 @@ impl<'a> FnEmitCtx<'a> {
                     );
                     if let Some(Pattern::Ident(var_n)) = subpatterns.first() {
                         let cv = self.fresh_tmp(&format!("v_{}", sanitize_ident(var_n)));
-                        let _ = writeln!(
-                            out,
-                            "            lo_st_{} {} = {{0}};",
-                            type_name, cv
-                        );
+                        let _ = writeln!(out, "            lo_st_{} {} = {{0}};", type_name, cv);
                         let _ = writeln!(
                             out,
                             "            if ({}) {} = *(lo_st_{}*){}.payload;",
@@ -1030,13 +1031,9 @@ impl<'a> FnEmitCtx<'a> {
                     for (fname, fpat) in fields {
                         if let Some(sf) = st.fields.iter().find(|f| &f.name == fname) {
                             let fc = format!("{}->f_{}", ptr, sanitize_ident(fname));
-                            let sub_ok =
-                                self.emit_pattern_assign_existing(fpat, &fc, &sf.ty, out);
-                            let _ = writeln!(
-                                out,
-                                "                {} = {} && ({});",
-                                ok, ok, sub_ok
-                            );
+                            let sub_ok = self.emit_pattern_assign_existing(fpat, &fc, &sf.ty, out);
+                            let _ =
+                                writeln!(out, "                {} = {} && ({});", ok, ok, sub_ok);
                         }
                     }
                     let _ = writeln!(out, "            }}");
@@ -1332,7 +1329,13 @@ impl<'a> FnEmitCtx<'a> {
                 self.push_scope();
                 if let Some(p) = param {
                     let pv = self.fresh_tmp(&format!("v_{}", sanitize_ident(p)));
-                    let _ = writeln!(out, "        {} {} = {};", c_type_name(&item_ty), pv, item_c);
+                    let _ = writeln!(
+                        out,
+                        "        {} {} = {};",
+                        c_type_name(&item_ty),
+                        pv,
+                        item_c
+                    );
                     self.bind_local(p, pv, item_ty, false);
                 }
                 self.pipe_stack.push(PipeLocalTarget {
@@ -1528,7 +1531,11 @@ impl<'a> FnEmitCtx<'a> {
                     "    for (size_t {0} = 0; {1} && {0} < {1}->cap; {0}++) {{",
                     idx, src_var
                 );
-                let _ = writeln!(out, "        if (!{}->entries[{}].occupied) continue;", src_var, idx);
+                let _ = writeln!(
+                    out,
+                    "        if (!{}->entries[{}].occupied) continue;",
+                    src_var, idx
+                );
                 let _ = writeln!(
                     out,
                     "        {} {} = *({}*){}->entries[{}].key;",
@@ -1635,7 +1642,13 @@ impl<'a> FnEmitCtx<'a> {
             PipeStage::Fold { acc_name, body, .. } => {
                 let step_acc = self.fresh_tmp("pfacc");
                 let after_fold = self.fresh_tmp("pfafter");
-                let _ = writeln!(out, "        {} {} = {};", c_type_name(ety), step_acc, res_var);
+                let _ = writeln!(
+                    out,
+                    "        {} {} = {};",
+                    c_type_name(ety),
+                    step_acc,
+                    res_var
+                );
                 self.push_scope();
                 let acc_v = self.fresh_tmp(&format!("v_{}", sanitize_ident(acc_name)));
                 let _ = writeln!(out, "        {} {} = {};", c_type_name(ety), acc_v, res_var);
@@ -1749,23 +1762,13 @@ impl<'a> FnEmitCtx<'a> {
                     let bv = sub_ctx.emit_block(body, &out_el, &mut cb_body);
                     if out_el != Type::Unit {
                         let tmp = sub_ctx.fresh_tmp("gel");
-                        let _ = writeln!(
-                            cb_body,
-                            "    {} {} = {};",
-                            c_type_name(&out_el),
-                            tmp,
-                            bv
-                        );
+                        let _ = writeln!(cb_body, "    {} {} = {};", c_type_name(&out_el), tmp, bv);
                         let _ = writeln!(cb_body, "    lo_vec_push(_ctx->res, &{});", tmp);
                     }
                 }
                 PipeStage::Filter { body } => {
                     let keep = sub_ctx.emit_block(body, &Type::Bool, &mut cb_body);
-                    let _ = writeln!(
-                        cb_body,
-                        "    if ({}) lo_vec_push(_ctx->res, &_item);",
-                        keep
-                    );
+                    let _ = writeln!(cb_body, "    if ({}) lo_vec_push(_ctx->res, &_item);", keep);
                 }
                 PipeStage::Fold { acc_name, body, .. } => {
                     sub_ctx.bind_local(acc_name, "_ctx->res".into(), ety.clone(), false);
@@ -1821,7 +1824,13 @@ impl<'a> FnEmitCtx<'a> {
             gen_var, gen_var, gen_var, cb_name, ctx_var
         );
         if *ety != Type::Unit {
-            let _ = writeln!(out, "    {} {} = {}.res;", c_type_name(ety), res_var, ctx_var);
+            let _ = writeln!(
+                out,
+                "    {} {} = {}.res;",
+                c_type_name(ety),
+                res_var,
+                ctx_var
+            );
             res_var
         } else {
             "lo_unit_val()".into()
@@ -1848,7 +1857,11 @@ impl<'a> FnEmitCtx<'a> {
             let rtmp = self.fresh_tmp("par_rng");
             let ri = self.fresh_tmp("pri");
             let _ = writeln!(out, "    lo_range_i64_t {} = {};", rtmp, lv);
-            let _ = writeln!(out, "    lo_vec* {} = lo_vec_new(sizeof(int64_t), 16);", in_vec);
+            let _ = writeln!(
+                out,
+                "    lo_vec* {} = lo_vec_new(sizeof(int64_t), 16);",
+                in_vec
+            );
             let _ = writeln!(
                 out,
                 "    for (int64_t {0} = {1}.start; {1}.inclusive ? ({0} <= {1}.end) : ({0} < {1}.end); {0}++) lo_vec_push({2}, &{0});",
@@ -1913,7 +1926,7 @@ impl<'a> FnEmitCtx<'a> {
                 call_targets: self.call_targets,
                 struct_targets: self.struct_targets,
                 ret_ty: out_elem_ty.clone(),
-                is_generator_worker: false,
+                is_generator_worker: true,
                 yield_ty: None,
                 local_vars: vec![std::collections::HashMap::new()],
                 current_item_stack: vec![("_item".into(), in_elem_ty.clone(), false)],
@@ -2044,7 +2057,7 @@ impl<'a> FnEmitCtx<'a> {
                 call_targets: self.call_targets,
                 struct_targets: self.struct_targets,
                 ret_ty: task_ret.clone(),
-                is_generator_worker: false,
+                is_generator_worker: true,
                 yield_ty: None,
                 local_vars: vec![std::collections::HashMap::new()],
                 current_item_stack: Vec::new(),

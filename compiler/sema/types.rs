@@ -31,10 +31,7 @@ pub enum Type {
     Struct(String),
     Enum(String),
     Interface(String),
-    Func {
-        params: Vec<Type>,
-        ret: Box<Type>,
-    },
+    Func { params: Vec<Type>, ret: Box<Type> },
     Module(String),
     ErrorAny,
 }

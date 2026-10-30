@@ -79,17 +79,17 @@ pub enum TokenKind {
     FatArrow,    // =>
 
     // Null-safety, Conditionals, Error Operators
-    Tilde,         // ~
-    Question,      // ?
-    SafeDot,       // ?.
-    SafeLBracket,  // ?[
-    SafeLParen,    // ?(
-    Elvis,         // ??
-    SafePipe,      // ?~>
-    BangBang,      // !!
-    QuestBang,     // ?!
-    QuestGt,       // ?>
-    QuestCaret,    // ?^
+    Tilde,        // ~
+    Question,     // ?
+    SafeDot,      // ?.
+    SafeLBracket, // ?[
+    SafeLParen,   // ?(
+    Elvis,        // ??
+    SafePipe,     // ?~>
+    BangBang,     // !!
+    QuestBang,    // ?!
+    QuestGt,      // ?>
+    QuestCaret,   // ?^
 
     // Returns, Yield, Throw, Loop Control
     Caret,      // ^

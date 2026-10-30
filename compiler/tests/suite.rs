@@ -158,7 +158,10 @@ fn e2e_native_execution_suite() {
         let stem = lo_file.file_stem().unwrap().to_string_lossy();
         let stdout_file = lo_file.with_extension("stdout");
         let expected_stdout = fs::read_to_string(&stdout_file).unwrap_or_else(|_| {
-            panic!("missing expected `.stdout` file `{}`", stdout_file.display())
+            panic!(
+                "missing expected `.stdout` file `{}`",
+                stdout_file.display()
+            )
         });
 
         let checked = TypeChecker::check_file(&lo_file, Some(std_dir.clone()))
@@ -166,8 +169,9 @@ fn e2e_native_execution_suite() {
         let c_code = emit_c_program(&checked);
 
         let bin_path = out_dir.join(format!("e2e_{}", stem));
-        compile_c_to_binary(&c_code, &bin_path, 1, &["m".into(), "pthread".into()])
-            .unwrap_or_else(|e| panic!("native C11 build failed on `{}`: {}", lo_file.display(), e));
+        compile_c_to_binary(&c_code, &bin_path, 1, &["m".into(), "pthread".into()]).unwrap_or_else(
+            |e| panic!("native C11 build failed on `{}`: {}", lo_file.display(), e),
+        );
 
         let output = Command::new(&bin_path)
             .current_dir(&out_dir)

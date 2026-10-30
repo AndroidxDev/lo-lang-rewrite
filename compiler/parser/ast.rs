@@ -102,10 +102,7 @@ pub enum MutOp {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum BindTarget {
-    Single {
-        name: String,
-        ty: Option<TypeExpr>,
-    },
+    Single { name: String, ty: Option<TypeExpr> },
     Destruct(Vec<String>),
 }
 
@@ -117,15 +114,15 @@ pub enum MutTarget {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum FlowKind {
-    Return(Option<Box<Expr>>),               // ^ [expr]
-    LocalReturn(Option<Box<Expr>>),          // ^@ [expr]
+    Return(Option<Box<Expr>>),                // ^ [expr]
+    LocalReturn(Option<Box<Expr>>),           // ^@ [expr]
     LabeledReturn(String, Option<Box<Expr>>), // ^#label [expr]
-    Yield(Box<Expr>),                        // ^~ expr
-    Throw(Box<Expr>),                        // !^ expr
-    Break(Option<Box<Expr>>),                // !@ [expr] or legacy !
-    LabeledBreak(String, Option<Box<Expr>>), // !#label [expr]
-    Continue,                                // ~@
-    LabeledContinue(String),                 // ~#label
+    Yield(Box<Expr>),                         // ^~ expr
+    Throw(Box<Expr>),                         // !^ expr
+    Break(Option<Box<Expr>>),                 // !@ [expr] or legacy !
+    LabeledBreak(String, Option<Box<Expr>>),  // !#label [expr]
+    Continue,                                 // ~@
+    LabeledContinue(String),                  // ~#label
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -306,10 +303,7 @@ pub enum CatchClause {
 pub enum LoopHead {
     Infinite,
     While(Box<Expr>),
-    ForEach {
-        var: String,
-        iter: Box<Expr>,
-    },
+    ForEach { var: String, iter: Box<Expr> },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -496,11 +490,10 @@ fn format_stmt(stmt: &Stmt, indent: usize, out: &mut String) {
                 TypeDefKind::Struct(fields) => {
                     let _ = writeln!(out, "{}TypeDef {}{}{} (Struct)", pad, vis, name, gens);
                     for f in fields {
-                        let ty_s = f
-                            .ty
-                            .as_ref()
-                            .map(|t| format!(" [{}]", t.format_short()))
-                            .unwrap_or_default();
+                        let ty_s =
+                            f.ty.as_ref()
+                                .map(|t| format!(" [{}]", t.format_short()))
+                                .unwrap_or_default();
                         let _ = writeln!(out, "{}  Field {}{}", pad, f.name, ty_s);
                         if let Some(d) = &f.default {
                             format_expr(d, indent + 2, out);
@@ -528,11 +521,10 @@ fn format_stmt(stmt: &Stmt, indent: usize, out: &mut String) {
                             VariantPayload::Struct(fs) => {
                                 let _ = writeln!(out, "{}  Variant {} [Struct]", pad, v.name);
                                 for f in fs {
-                                    let ty_s = f
-                                        .ty
-                                        .as_ref()
-                                        .map(|t| format!(" [{}]", t.format_short()))
-                                        .unwrap_or_default();
+                                    let ty_s =
+                                        f.ty.as_ref()
+                                            .map(|t| format!(" [{}]", t.format_short()))
+                                            .unwrap_or_default();
                                     let _ = writeln!(out, "{}    Field {}{}", pad, f.name, ty_s);
                                 }
                             }

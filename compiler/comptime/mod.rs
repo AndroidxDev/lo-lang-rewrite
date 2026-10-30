@@ -167,8 +167,9 @@ impl ComptimeValue {
             }
             ComptimeValue::Func { .. } | ComptimeValue::BuiltinMod(_) => {
                 return Err(ComptimeError {
-                    message: "comptime block cannot evaluate to a runtime function or module handle"
-                        .into(),
+                    message:
+                        "comptime block cannot evaluate to a runtime function or module handle"
+                            .into(),
                     span,
                 })
             }
@@ -370,18 +371,17 @@ impl ComptimeEvaluator {
                 StmtKind::Defer { body, .. } => {
                     self.fold_comptime_in_block(body)?;
                 }
-                StmtKind::Flow(flow) => match flow {
+                StmtKind::Flow(
                     FlowKind::Return(Some(e))
                     | FlowKind::LocalReturn(Some(e))
                     | FlowKind::LabeledReturn(_, Some(e))
                     | FlowKind::Yield(e)
                     | FlowKind::Throw(e)
                     | FlowKind::Break(Some(e))
-                    | FlowKind::LabeledBreak(_, Some(e)) => {
-                        self.fold_comptime_in_expr(e)?;
-                    }
-                    _ => {}
-                },
+                    | FlowKind::LabeledBreak(_, Some(e)),
+                ) => {
+                    self.fold_comptime_in_expr(e)?;
+                }
                 StmtKind::Expr(e) => {
                     self.fold_comptime_in_expr(e)?;
                 }
@@ -399,7 +399,8 @@ impl ComptimeEvaluator {
                 Err(Signal::Return(v) | Signal::LocalReturn(v)) => v,
                 Err(_) => {
                     return Err(ComptimeError {
-                        message: "unhandled control flow escaping `<{ ... }>` comptime block".into(),
+                        message: "unhandled control flow escaping `<{ ... }>` comptime block"
+                            .into(),
                         span: expr.span,
                     })
                 }
@@ -573,7 +574,10 @@ impl ComptimeEvaluator {
         Ok(())
     }
 
-    fn eval_block(&mut self, block: &Block) -> Result<Result<ComptimeValue, Signal>, ComptimeError> {
+    fn eval_block(
+        &mut self,
+        block: &Block,
+    ) -> Result<Result<ComptimeValue, Signal>, ComptimeError> {
         self.push_scope();
         let mut last = ComptimeValue::Unit;
         for stmt in &block.stmts {
@@ -771,10 +775,13 @@ impl ComptimeEvaluator {
                 Ok(Ok(ComptimeValue::Str(out)))
             }
             ExprKind::Ident(name) => {
-                let v = self.lookup_var(name).cloned().ok_or_else(|| ComptimeError {
-                    message: format!("undefined identifier `{}` in comptime", name),
-                    span: expr.span,
-                })?;
+                let v = self
+                    .lookup_var(name)
+                    .cloned()
+                    .ok_or_else(|| ComptimeError {
+                        message: format!("undefined identifier `{}` in comptime", name),
+                        span: expr.span,
+                    })?;
                 Ok(Ok(v))
             }
             ExprKind::CurrentItem => {
@@ -879,10 +886,12 @@ impl ComptimeEvaluator {
                     }
                 }
                 if let Some(sp) = spread {
-                    if let ComptimeValue::Struct { fields: base_f, .. } = match self.eval_expr(sp)? {
-                        Ok(v) => v,
-                        Err(sig) => return Ok(Err(sig)),
-                    } {
+                    if let ComptimeValue::Struct { fields: base_f, .. } =
+                        match self.eval_expr(sp)? {
+                            Ok(v) => v,
+                            Err(sig) => return Ok(Err(sig)),
+                        }
+                    {
                         for (bk, bv) in base_f {
                             if let Some(slot) = map_fields.iter_mut().find(|(k, _)| k == &bk) {
                                 slot.1 = bv;
@@ -1198,9 +1207,10 @@ impl ComptimeEvaluator {
                         ("f64" | "f32", ComptimeValue::Int(n)) => {
                             return Ok(Ok(ComptimeValue::Float(*n as f64)))
                         }
-                        ("i64" | "i32" | "i16" | "i8" | "u64" | "u32" | "u8" | "usz", ComptimeValue::Float(x)) => {
-                            return Ok(Ok(ComptimeValue::Int(*x as i64)))
-                        }
+                        (
+                            "i64" | "i32" | "i16" | "i8" | "u64" | "u32" | "u8" | "usz",
+                            ComptimeValue::Float(x),
+                        ) => return Ok(Ok(ComptimeValue::Int(*x as i64))),
                         _ => {}
                     }
                 }
@@ -1468,9 +1478,8 @@ impl ComptimeEvaluator {
                     let res = self.eval_block(body)?;
                     self.current_item_stack.pop();
                     match res {
-                        Ok(ComptimeValue::Bool(true)) | Err(Signal::LocalReturn(ComptimeValue::Bool(true))) => {
-                            out.push(item)
-                        }
+                        Ok(ComptimeValue::Bool(true))
+                        | Err(Signal::LocalReturn(ComptimeValue::Bool(true))) => out.push(item),
                         Ok(ComptimeValue::Bool(false))
                         | Err(Signal::LocalReturn(ComptimeValue::Bool(false))) => {}
                         Ok(_) => {

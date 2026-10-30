@@ -24,6 +24,9 @@ jobs:
           rustup update stable
           rustup component add clippy rustfmt
 
+      - name: Lint workspace with Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
       - name: Build workspace
         run: cargo build --workspace --release
 
@@ -34,6 +37,8 @@ jobs:
         run: |
           for dir in examples/*/; do
             if [ -f "${dir}Lomake.lo" ]; then
+              ./target/release/lomake test --manifest "${dir}Lomake.lo"
               ./target/release/lomake run --manifest "${dir}Lomake.lo"
+              ./target/release/lomake clean --manifest "${dir}Lomake.lo"
             fi
           done

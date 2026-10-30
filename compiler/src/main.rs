@@ -47,7 +47,9 @@ fn parse_opts(args: &[String]) -> Result<CliOpts, String> {
             break;
         } else if a == "-o" {
             i += 1;
-            let val = args.get(i).ok_or_else(|| "missing value after `-o`".to_string())?;
+            let val = args
+                .get(i)
+                .ok_or_else(|| "missing value after `-o`".to_string())?;
             output = Some(PathBuf::from(val));
         } else if a == "--std-path" {
             i += 1;
@@ -57,7 +59,9 @@ fn parse_opts(args: &[String]) -> Result<CliOpts, String> {
             std_path = Some(PathBuf::from(val));
         } else if a == "-l" {
             i += 1;
-            let val = args.get(i).ok_or_else(|| "missing value after `-l`".to_string())?;
+            let val = args
+                .get(i)
+                .ok_or_else(|| "missing value after `-l`".to_string())?;
             c_libs.push(val.clone());
         } else if let Some(lib) = a.strip_prefix("-l") {
             c_libs.push(lib.to_string());
@@ -103,11 +107,9 @@ fn main() {
     match cmd {
         "-h" | "--help" | "help" => {
             print_usage();
-            return;
         }
         "-V" | "--version" | "version" => {
             println!("loc 1.0.0");
-            return;
         }
         "lex" => {
             let Some(path) = args.get(2) else {

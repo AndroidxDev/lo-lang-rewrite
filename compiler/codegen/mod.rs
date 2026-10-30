@@ -119,11 +119,7 @@ fn format_fn_params(f: &MonoFunc) -> String {
         }
     }
     for (pname, pty, _) in &f.params {
-        parts.push(format!(
-            "{} _p_{}",
-            c_type_name(pty),
-            sanitize_ident(pname)
-        ));
+        parts.push(format!("{} _p_{}", c_type_name(pty), sanitize_ident(pname)));
     }
     if parts.is_empty() {
         "void".into()
@@ -214,7 +210,7 @@ pub fn emit_c_program(prog: &CheckedProgram) -> String {
             call_targets: &empty_targets,
             struct_targets: &empty_targets,
             ret_ty: g.ty.clone(),
-            is_generator_worker: false,
+            is_generator_worker: true,
             yield_ty: None,
             local_vars: vec![HashMap::new()],
             current_item_stack: Vec::new(),
@@ -358,7 +354,13 @@ fn emit_normal_function(
         let _ = writeln!(fn_bodies, "    return lo_unit_val();");
     } else {
         let ret_var = ctx.fresh_tmp("fnret");
-        let _ = writeln!(fn_bodies, "    {} {} = {};", c_type_name(&f.ret_ty), ret_var, bv);
+        let _ = writeln!(
+            fn_bodies,
+            "    {} {} = {};",
+            c_type_name(&f.ret_ty),
+            ret_var,
+            bv
+        );
         ctx.emit_active_defers(fn_bodies, false);
         let _ = writeln!(fn_bodies, "    return {};", ret_var);
     }
@@ -520,7 +522,11 @@ pub fn compile_c_to_binary(
     if let Some(parent) = out_bin.parent() {
         if !parent.as_os_str().is_empty() && !parent.exists() {
             fs::create_dir_all(parent).map_err(|e| CodegenError {
-                message: format!("failed to create output directory `{}`: {}", parent.display(), e),
+                message: format!(
+                    "failed to create output directory `{}`: {}",
+                    parent.display(),
+                    e
+                ),
             })?;
         }
     }
@@ -531,7 +537,11 @@ pub fn compile_c_to_binary(
     let c_file: PathBuf = tmp_dir.join(format!("lo_gen_{}_{}.c", pid, seq));
 
     fs::write(&c_file, c_code).map_err(|e| CodegenError {
-        message: format!("failed to write temporary C file `{}`: {}", c_file.display(), e),
+        message: format!(
+            "failed to write temporary C file `{}`: {}",
+            c_file.display(),
+            e
+        ),
     })?;
 
     let cc = detect_c_compiler();
