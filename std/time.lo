@@ -1,0 +1,55 @@
+#[ std/time.lo — Монотонные таймеры, паузы и замер времени выполнения блоков ]#
+
+c_now_ms   = <"c" "lo_rt_time_now_ms" () [i64]>
+c_now_us   = <"c" "lo_rt_time_now_us" () [i64]>
+c_sleep_ms = <"c" "lo_rt_time_sleep_ms" (i64) []>
+
+#[ Монотонная метка времени в миллисекундах ]#
++now_ms = () [i64] {
+  c_now_ms()
+}
+
+#[ Монотонная метка времени в микросекундах ]#
++now_us = () [i64] {
+  c_now_us()
+}
+
+#[ Приостановка текущего потока на ms миллисекунд ]#
++sleep_ms = (ms [i64]) {
+  c_sleep_ms(ms)
+}
+
+#[ Замер времени выполнения переданного блока/функции { ... } в миллисекундах ]#
++measure_ms = (action) [i64] {
+  t0 = c_now_ms()
+  action()
+  c_now_ms() - t0
+}
+
+#[ Замер времени выполнения переданного блока/функции { ... } в микросекундах ]#
++measure_us = (action) [i64] {
+  t0 = c_now_us()
+  action()
+  c_now_us() - t0
+}
+
+#[ Структура секундомера Stopwatch ]#
++Stopwatch = [
+  start_us [i64] = 0
+]
+
++stopwatch = () [Stopwatch] {
+  Stopwatch[start_us = c_now_us()]
+}
+
++Stopwatch.elapsed_us = () [i64] {
+  c_now_us() - @.start_us
+}
+
++Stopwatch.elapsed_ms = () [i64] {
+  (c_now_us() - @.start_us) / 1000
+}
+
++Stopwatch.reset! = () {
+  @.start_us <- c_now_us()
+}
