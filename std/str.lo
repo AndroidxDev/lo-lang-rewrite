@@ -1,0 +1,94 @@
+#[ std/str.lo — Операции над UTF-8 строками и безопасный парсинг чисел ]#
+
+#[ Длина строки в байтах ]#
++len = (s [str]) [i64] {
+  s.len
+}
+
+#[ Проверка на пустую строку ]#
++is_empty = (s [str]) [bool] {
+  s.len == 0
+}
+
+#[ Обрезка пробельных символов по краям ]#
++trim = (s [str]) [str] {
+  s.trim()
+}
+
+#[ Перевод символов в верхний регистр ]#
++upper = (s [str]) [str] {
+  s.upper()
+}
+
+#[ Перевод символов в нижний регистр ]#
++lower = (s [str]) [str] {
+  s.lower()
+}
+
+#[ Разбиение строки по разделителю ]#
++split = (s [str], delim [str]) [str..] {
+  s.split(delim)
+}
+
+#[ Склейка массива строк через разделитель ]#
++join = (parts [str..], sep [str]) [str] {
+  out ~= ""
+  idx ~= 0
+  @ (item <- parts) {
+    ? (idx > 0) {
+      out +<- sep
+    }
+    out +<- item
+    idx +<- 1
+  }
+  out
+}
+
+#[ Проверка наличия подстроки ]#
++contains = (s [str], sub [str]) [bool] {
+  s.contains(sub)
+}
+
+#[ Проверка префикса ]#
++starts_with = (s [str], prefix [str]) [bool] {
+  s.starts_with(prefix)
+}
+
+#[ Проверка суффикса ]#
++ends_with = (s [str], suffix [str]) [bool] {
+  s.ends_with(suffix)
+}
+
+#[ Замена всех вхождений подстроки ]#
++replace = (s [str], from [str], to [str]) [str] {
+  ? (from.len == 0) {
+    ^ s
+  }
+  join(s.split(from), to)
+}
+
+#[ Повторение строки count раз ]#
++repeat = (s [str], count [i64]) [str] {
+  out ~= ""
+  i ~= 0
+  @ (i < count) {
+    out +<- s
+    i +<- 1
+  }
+  out
+}
+
+#[ Безопасный срез строки [start..end) ]#
++slice = (s [str], start [i64], end [i64]) [str] {
+  s[start..end]
+}
+
+#[ Безопасный парсинг целого числа: возвращает [i64?] (~ при ошибке формата) ]#
++to_i64 = (s [str]) [i64?] {
+  s.to_i64()
+}
+
+#[ Безопасный парсинг вещественного числа: возвращает [f64?] (~ при ошибке формата) ]#
++to_f64 = (s [str]) [f64?] {
+  s.to_f64()
+}
