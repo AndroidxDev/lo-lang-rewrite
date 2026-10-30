@@ -19,6 +19,7 @@ pub struct TypeChecker {
     pub(crate) loaded_modules: HashMap<PathBuf, String>,
     pub(crate) modules: HashMap<String, ModuleExports>,
     pub(crate) module_aliases: HashMap<String, String>,
+    pub(crate) module_scopes: HashMap<String, ModuleScope>,
 
     pub(crate) struct_order: Vec<String>,
     pub(crate) structs: HashMap<String, CheckedStruct>,
@@ -57,6 +58,7 @@ impl TypeChecker {
             loaded_modules: HashMap::new(),
             modules: HashMap::new(),
             module_aliases: HashMap::new(),
+            module_scopes: HashMap::new(),
             struct_order: Vec::new(),
             structs: HashMap::new(),
             generic_structs: HashMap::new(),
@@ -327,6 +329,7 @@ impl TypeChecker {
                         self.global_c_names.insert(name.clone(), c_name.clone());
                         self.globals.push(GlobalConst {
                             c_name: c_name.clone(),
+                            module_prefix: mod_prefix.to_string(),
                             lo_name: name.clone(),
                             ty: final_ty.clone(),
                             value: value.clone(),
@@ -484,6 +487,15 @@ impl TypeChecker {
             let saved_externs = self.extern_map.clone();
 
             let exports = self.process_module(&mod_prog, Some(&canon), &mod_id, false)?;
+
+            self.module_scopes.insert(
+                mod_id.clone(),
+                ModuleScope {
+                    aliases: self.module_aliases.clone(),
+                    externs: self.extern_map.clone(),
+                    globals: self.global_types.clone(),
+                },
+            );
 
             self.module_aliases = saved_aliases;
             self.global_types = saved_globals;
@@ -1327,6 +1339,34 @@ impl TypeChecker {
         // 5. Direct function / extern / template / `$` / closure call
         if let ExprKind::Ident(fname) = &callee.kind {
             if ctx.lookup_var_raw(fname).is_none() {
+                if !ctx.module_prefix.is_empty() {
+                    if let Some(ext) = self
+                        .module_scopes
+                        .get(&ctx.module_prefix)
+                        .and_then(|s| s.externs.get(fname))
+                        .cloned()
+                    {
+                        self.verify_call_args(&ext.params, args, span, ctx)?;
+                        ctx.call_targets
+                            .insert(span_key(span), format!("__extern_{}", ext.c_symbol));
+                        return Ok(ext.ret);
+                    }
+                    let scoped_tpl = format!("{}__{}", ctx.module_prefix, fname);
+                    if self.func_templates.contains_key(&scoped_tpl) {
+                        let mut arg_tys = Vec::with_capacity(args.len());
+                        for a in args {
+                            arg_tys.push(self.check_expr(a, None, ctx)?);
+                        }
+                        let mut g_args = Vec::new();
+                        for g in call_generics {
+                            g_args.push(self.resolve_type_expr(g, &ctx.type_subst, span)?);
+                        }
+                        let (c_name, ret_ty) =
+                            self.instantiate_template(&scoped_tpl, None, &arg_tys, &g_args, span)?;
+                        ctx.call_targets.insert(span_key(span), c_name);
+                        return Ok(ret_ty);
+                    }
+                }
                 if let Some(ext) = self.extern_map.get(fname).cloned() {
                     self.verify_call_args(&ext.params, args, span, ctx)?;
                     ctx.call_targets
@@ -1730,6 +1770,7 @@ impl TypeChecker {
             .insert(c_name.clone(), provisional_ret.clone());
 
         let mut fctx = FnCheckCtx::new(declared_ret.clone(), subst);
+        fctx.module_prefix = tpl.module_prefix.clone();
         let param_only_tys: Vec<Type> = final_params.iter().map(|(_, t, _)| t.clone()).collect();
         let self_fn_sig = Type::Func {
             params: param_only_tys,
@@ -1777,6 +1818,7 @@ impl TypeChecker {
         self.mono_cache.insert(c_name.clone(), final_ret.clone());
         self.mono_funcs.push(MonoFunc {
             c_name: c_name.clone(),
+            module_prefix: tpl.module_prefix.clone(),
             receiver: receiver_ty.map(|rt| (rt, tpl.is_mutating_method)),
             params: final_params,
             ret_ty: final_ret.clone(),

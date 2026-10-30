@@ -37,6 +37,7 @@ pub struct PipeLocalTarget {
 
 pub struct FnEmitCtx<'a> {
     pub prog: &'a CheckedProgram,
+    pub module_prefix: String,
     pub expr_types: &'a HashMap<SpanKey, Type>,
     pub call_targets: &'a HashMap<SpanKey, String>,
     pub struct_targets: &'a HashMap<SpanKey, String>,
@@ -439,6 +440,16 @@ impl<'a> FnEmitCtx<'a> {
                     };
                     // Smart Cast automatic unwrapping when raw variable is Nullable(T) and effective expr_ty is T!
                     return self.coerce(&base, &raw_ty, &ety, out);
+                }
+                if let Some(target_c) = self.call_targets.get(&span_key(expr.span)) {
+                    return target_c.clone();
+                }
+                if !self.module_prefix.is_empty() {
+                    if let Some(g) = self.prog.globals.iter().find(|g| {
+                        g.module_prefix == self.module_prefix && &g.lo_name == name
+                    }) {
+                        return g.c_name.clone();
+                    }
                 }
                 if let Some(g) = self.prog.globals.iter().find(|g| &g.lo_name == name) {
                     return g.c_name.clone();

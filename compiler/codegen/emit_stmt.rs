@@ -1700,6 +1700,7 @@ impl<'a> FnEmitCtx<'a> {
         {
             let mut sub_ctx = FnEmitCtx {
                 prog: self.prog,
+                module_prefix: self.module_prefix.clone(),
                 expr_types: self.expr_types,
                 call_targets: self.call_targets,
                 struct_targets: self.struct_targets,
@@ -1898,6 +1899,7 @@ impl<'a> FnEmitCtx<'a> {
         {
             let mut sub_ctx = FnEmitCtx {
                 prog: self.prog,
+                module_prefix: self.module_prefix.clone(),
                 expr_types: self.expr_types,
                 call_targets: self.call_targets,
                 struct_targets: self.struct_targets,
@@ -2028,6 +2030,7 @@ impl<'a> FnEmitCtx<'a> {
         {
             let mut sub_ctx = FnEmitCtx {
                 prog: self.prog,
+                module_prefix: self.module_prefix.clone(),
                 expr_types: self.expr_types,
                 call_targets: self.call_targets,
                 struct_targets: self.struct_targets,

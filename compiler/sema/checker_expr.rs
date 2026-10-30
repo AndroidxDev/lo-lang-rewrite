@@ -587,6 +587,35 @@ impl TypeChecker {
                 if let Some(ty) = ctx.lookup_var_effective_ty(name) {
                     return Ok(ty);
                 }
+                if !ctx.module_prefix.is_empty() {
+                    if let Some(mscope) = self.module_scopes.get(&ctx.module_prefix) {
+                        if let Some(gty) = mscope.globals.get(name) {
+                            return Ok(gty.clone());
+                        }
+                        if let Some(ext) = mscope.externs.get(name) {
+                            return Ok(Type::Func {
+                                params: ext.params.clone(),
+                                ret: Box::new(ext.ret.clone()),
+                            });
+                        }
+                        if let Some(mod_id) = mscope.aliases.get(name) {
+                            return Ok(Type::Module(mod_id.clone()));
+                        }
+                    }
+                    let scoped_fn = format!("{}__{}", ctx.module_prefix, name);
+                    if let Some(tpl) = self.func_templates.get(&scoped_fn).cloned() {
+                        if tpl.func.generics.is_empty() && tpl.func.params.iter().all(|p| p.ty.is_some()) {
+                            let empty = HashMap::new();
+                            let mut ptys = Vec::new();
+                            for p in &tpl.func.params {
+                                ptys.push(self.resolve_type_expr(p.ty.as_ref().unwrap(), &empty, expr.span)?);
+                            }
+                            let (c_name, ret_ty) = self.instantiate_template(&scoped_fn, None, &ptys, &[], expr.span)?;
+                            ctx.call_targets.insert(span_key(expr.span), c_name);
+                            return Ok(Type::Func { params: ptys, ret: Box::new(ret_ty) });
+                        }
+                    }
+                }
                 if let Some(gty) = self.global_types.get(name) {
                     return Ok(gty.clone());
                 }
@@ -598,6 +627,19 @@ impl TypeChecker {
                 }
                 if let Some(mod_id) = self.module_aliases.get(name) {
                     return Ok(Type::Module(mod_id.clone()));
+                }
+                // Reference to concrete top-level function as value (e.g. `items ~> double_all` or `time.measure_ms(work)`)
+                if let Some(tpl) = self.func_templates.get(name).cloned() {
+                    if tpl.func.generics.is_empty() && tpl.func.params.iter().all(|p| p.ty.is_some()) {
+                        let empty = HashMap::new();
+                        let mut ptys = Vec::new();
+                        for p in &tpl.func.params {
+                            ptys.push(self.resolve_type_expr(p.ty.as_ref().unwrap(), &empty, expr.span)?);
+                        }
+                        let (c_name, ret_ty) = self.instantiate_template(name, None, &ptys, &[], expr.span)?;
+                        ctx.call_targets.insert(span_key(expr.span), c_name);
+                        return Ok(Type::Func { params: ptys, ret: Box::new(ret_ty) });
+                    }
                 }
                 Err(SemaError {
                     message: format!("undefined identifier `{}`", name),
@@ -1750,6 +1792,7 @@ impl TypeChecker {
 }
 
 pub(crate) struct FnCheckCtx {
+    pub module_prefix: String,
     pub scopes: Vec<HashMap<String, VarInfo>>,
     pub narrow_stack: Vec<HashMap<String, Type>>,
     pub current_items: Vec<(Type, bool)>,
@@ -1771,6 +1814,7 @@ pub(crate) struct FnCheckCtx {
 impl FnCheckCtx {
     pub fn new(declared_ret: Option<Type>, type_subst: HashMap<String, Type>) -> Self {
         Self {
+            module_prefix: String::new(),
             scopes: vec![HashMap::new()],
             narrow_stack: vec![HashMap::new()],
             current_items: Vec::new(),

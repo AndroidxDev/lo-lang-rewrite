@@ -209,6 +209,7 @@ pub fn emit_c_program(prog: &CheckedProgram) -> String {
     for g in &prog.globals {
         let mut gctx = FnEmitCtx {
             prog,
+            module_prefix: g.module_prefix.clone(),
             expr_types: &g.expr_types,
             call_targets: &empty_targets,
             struct_targets: &empty_targets,
@@ -310,6 +311,7 @@ fn emit_normal_function(
 
     let mut ctx = FnEmitCtx {
         prog,
+        module_prefix: f.module_prefix.clone(),
         expr_types: &f.expr_types,
         call_targets: &f.call_targets,
         struct_targets: &f.struct_targets,
@@ -415,6 +417,7 @@ fn emit_generator_function(
 
     let mut ctx = FnEmitCtx {
         prog,
+        module_prefix: f.module_prefix.clone(),
         expr_types: &f.expr_types,
         call_targets: &f.call_targets,
         struct_targets: &f.struct_targets,

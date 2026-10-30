@@ -93,9 +93,17 @@ pub struct FuncTemplate {
     pub module_prefix: String,
 }
 
+#[derive(Debug, Clone, Default)]
+pub struct ModuleScope {
+    pub aliases: HashMap<String, String>,
+    pub externs: HashMap<String, ExternCSig>,
+    pub globals: HashMap<String, Type>,
+}
+
 #[derive(Debug, Clone)]
 pub struct MonoFunc {
     pub c_name: String,
+    pub module_prefix: String,
     pub receiver: Option<(Type, bool)>, // (Type, is_mutating)
     pub params: Vec<(String, Type, Option<Expr>)>,
     pub ret_ty: Type,
@@ -110,6 +118,7 @@ pub struct MonoFunc {
 #[derive(Debug, Clone)]
 pub struct GlobalConst {
     pub c_name: String,
+    pub module_prefix: String,
     pub lo_name: String,
     pub ty: Type,
     pub value: Expr,
